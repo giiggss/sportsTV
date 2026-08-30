@@ -2,6 +2,7 @@
 // GitHub Actions 每天定时运行本脚本生成 data/events.json，供 GitHub Pages 前端读取
 const fs = require('fs');
 const path = require('path');
+const { fetchTTBLItems } = require('./ttbl');
 
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'events.json');
@@ -38,6 +39,7 @@ const TEAMS = [
   ['皇马', 'realmadrid'],
   ['马德里竞技', 'atletico'],
   ['马竞', 'atletico'],
+  ['杜塞尔多夫', 'duesseldorf'], // 德乒甲，樊振东所在队
 ];
 const TEAM_KEYS = [...new Set(TEAMS.map(([, k]) => k))];
 
@@ -161,7 +163,7 @@ function esc(s) {
 }
 
 // 关注的球队（与页签"我的球队"一致），卡片只展示这些队伍的比赛
-const FOLLOW_TEAM_KEYS = ['mancity', 'arsenal', 'manutd', 'chelsea', 'barcelona', 'realmadrid', 'atletico', 'shenhua', 'shanggang'];
+const FOLLOW_TEAM_KEYS = ['mancity', 'arsenal', 'manutd', 'chelsea', 'barcelona', 'realmadrid', 'atletico', 'shenhua', 'shanggang', 'duesseldorf'];
 
 // 从全部赛事中选出"关注球队"的赛事，并确定卡片展示的日期（优先今天，否则最近一个有比赛的日期）
 function pickFollowedDay(events) {
@@ -256,7 +258,7 @@ function generateCard(data) {
       </tr>
       <tr>
         <td style="padding:14px 36px 28px;">
-          <div style="font-size:12px;color:#b6bcc4;text-align:center;">数据来源 zhibo8.com · 每天 ${new Date().toLocaleString('zh-CN', { hour12: false })} 自动更新</div>
+          <div style="font-size:12px;color:#b6bcc4;text-align:center;">数据来源 zhibo8.com · ttbl.de · 每天 ${new Date().toLocaleString('zh-CN', { hour12: false })} 自动更新</div>
         </td>
       </tr>
     </table>
@@ -271,6 +273,21 @@ async function crawl() {
   const html = await fetchPage();
   const events = parseSchedule(html);
   if (events.length === 0) throw new Error('解析结果为空，页面结构可能已变化');
+
+  // 德乒甲(TTBL)赛程——直播吧没有，从官方站 ttbl.de 补充；失败不影响直播吧数据
+  try {
+    const raw = await fetchTTBLItems();
+    for (const it of raw) {
+      it.category = classify(it);
+      it.sub = subCategory(it);
+      it.teams = teamMatches(it);
+      events.push(it);
+    }
+    console.log(`[ttbl] 已并入德乒甲赛程 ${raw.length} 场`);
+  } catch (e) {
+    console.error(`[ttbl] 抓取失败(不影响直播吧数据): ${e.message}`);
+  }
+
   const data = {
     crawledAt: new Date().toISOString(),
     source: SOURCE_URL,

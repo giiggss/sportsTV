@@ -8,10 +8,12 @@ const fs = require('fs');
 const path = require('path');
 const { pickFollowedDay } = require('./crawler');
 const { fetchLiveScores, matchFollowedLive, loadState: loadScoreState, saveState: saveScoreState } = require('./score');
+const { fetchTTBLGameday } = require('./ttbl');
 
 const DATA_DIR = path.join(__dirname, 'data');
 const EVENTS_FILE = path.join(DATA_DIR, 'events.json');
 const STATE_FILE = path.join(DATA_DIR, 'notify-state.json');
+const TT_STATE_FILE = path.join(DATA_DIR, 'ttbl-score-state.json');
 const CARD_URL = 'https://giiggss.github.io/sportsTV/data/card.html';
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -302,11 +304,98 @@ async function runScoreUpdates(opts = {}) {
   return { sent: messages.length };
 }
 
+// ---------------- 德乒甲(TTBL)局分提醒（本地专用） ----------------
+// 直播吧比分接口没有乒乓球，改轮询 ttbl.de 官方页面的局分(homeGames/awayGames)。
+// 仅在关注比赛开赛前后共 310 分钟窗口内请求，每次只抓该场所属轮次的一个页面。
+function loadTTState() {
+  try {
+    return JSON.parse(fs.readFileSync(TT_STATE_FILE, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function saveTTState(s) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(TT_STATE_FILE, JSON.stringify(s, null, 2), 'utf8');
+}
+
+async function runTTUpdates(opts = {}) {
+  const key = opts.key || KEY;
+  const data = loadData();
+  if (!data) return { sent: 0 };
+
+  // 关注球队的德乒甲比赛（有官方比赛 id 和轮次信息才可轮询）
+  const tt = (data.events || []).filter(e =>
+    e.category === 'pingpong' && e.ttblId && e.gdIndex &&
+    Array.isArray(e.teams) && e.teams.length > 0);
+
+  // 预判：只在开赛前后(前10分~后300分钟，覆盖五局三胜/决胜局)轮询
+  const now = Date.now();
+  const due = tt.filter(e => {
+    const t = parseTime(e.time);
+    if (t === null) return false;
+    const kickoff = Date.parse(`${e.date}T${fmtTime(t)}:00+08:00`);
+    if (Number.isNaN(kickoff)) return false;
+    const diff = (now - kickoff) / 60000;
+    return diff >= -10 && diff <= 300;
+  });
+  if (due.length === 0) return { sent: 0 };
+
+  const state = loadTTState();
+  const pages = {};
+  const messages = [];
+  for (const e of due) {
+    if (!pages[e.gdIndex]) {
+      try {
+        pages[e.gdIndex] = await fetchTTBLGameday(e.gdIndex);
+      } catch (err) {
+        console.error(`[notify] ttbl 第${e.gdIndex}轮抓取失败: ${err.message}`);
+        continue;
+      }
+    }
+    const m = ((pages[e.gdIndex].matches || []).find(x => x.id === e.ttblId));
+    if (!m) continue;
+    const games = `${m.homeGames || 0}-${m.awayGames || 0}`;
+    const finished = /finish|beend/i.test(m.matchState || '');
+    const prev = state[m.id];
+    // 局分变化（完赛后不再推送变化）
+    if (prev && !prev.ft && !finished && prev.games !== games) {
+      messages.push({
+        title: `🏓 ${e.home} ${games} ${e.away}`.slice(0, 50),
+        desp: `**局分变化**\n\n${e.home} **${games}** ${e.away}\n\n德乒甲${e.url ? `\n\n[观看直播](${e.url})` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+      });
+    }
+    // 完赛（整场团队赛结束，推送最终局分）
+    if (prev && !prev.ft && finished) {
+      messages.push({
+        title: `🏁 完赛 ${e.home} ${games} ${e.away}`.slice(0, 50),
+        desp: `**比赛结束**\n\n${e.home} **${games}** ${e.away}\n\n德乒甲最终局分\n\n[打开今日卡片](${CARD_URL})`,
+      });
+    }
+    state[m.id] = { games, ft: Boolean(finished || (prev && prev.ft)) };
+  }
+  saveTTState(state);
+
+  if (DRY && !opts.force) {
+    console.log(`[dry] ttbl 关注比赛窗口内 ${due.length} 场，待推送 ${messages.length} 条`);
+    for (const m of messages) console.log(`[dry] title: ${m.title}`);
+    return { sent: 0 };
+  }
+  if (!key) throw new Error('未配置 SERVERCHAN_KEY');
+  for (const m of messages) {
+    await sendServerChan(key, m.title, m.desp);
+    console.log(`[notify] ttbl 已发送: ${m.title}`);
+  }
+  return { sent: messages.length };
+}
+
 async function main() {
   if (MODE === 'card') return runCard();
   if (MODE === 'reminders') return runReminders();
   if (MODE === 'score') return runScoreUpdates();
-  throw new Error(`未知模式: ${MODE}（可用: card / reminders / score）`);
+  if (MODE === 'tt') return runTTUpdates();
+  throw new Error(`未知模式: ${MODE}（可用: card / reminders / score / tt）`);
 }
 
 // 仅直接运行时才执行主流程（require 时不执行，便于测试）
@@ -317,4 +406,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { sendServerChan, sendUrl, buildCardMessage, findDueReminders, beijingNow, runCard, runReminders, runScoreUpdates };
+module.exports = { sendServerChan, sendUrl, buildCardMessage, findDueReminders, beijingNow, runCard, runReminders, runScoreUpdates, runTTUpdates };

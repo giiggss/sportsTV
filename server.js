@@ -6,7 +6,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { crawl, loadData, isStale, SUB_KEYS, TEAM_KEYS } = require('./crawler');
-const { runReminders, runScoreUpdates } = require('./notify');
+const { runReminders, runScoreUpdates, runTTUpdates } = require('./notify');
 
 const PORT = process.env.PORT || 3000;
 
@@ -58,6 +58,22 @@ function scheduleScoreUpdates() {
       });
   };
   setTimeout(tick, 5000).unref();
+}
+
+// 德乒甲局分提醒：官方页面较重(约250KB)，仅在关注比赛时段轮询，100~140秒随机间隔
+function scheduleTTUpdates() {
+  const key = loadConfig().serverchanKey;
+  if (!key) return;
+  console.log('[notify] 德乒甲局分提醒已启用（100~140秒随机间隔，仅比赛时段轮询）');
+  const tick = () => {
+    runTTUpdates({ key })
+      .catch(e => console.error('[notify] ttbl 检查失败:', e.message))
+      .finally(() => {
+        const delay = 100000 + Math.floor(Math.random() * 40000);
+        setTimeout(tick, delay).unref();
+      });
+  };
+  setTimeout(tick, 30000).unref();
 }
 
 // ---------------- 每日定时 ----------------
@@ -160,6 +176,7 @@ const server = http.createServer(async (req, res) => {
   scheduleDaily();
   scheduleReminders();
   scheduleScoreUpdates();
+  scheduleTTUpdates();
 })();
 
 server.listen(PORT, () => {

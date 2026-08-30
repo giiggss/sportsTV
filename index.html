@@ -228,7 +228,7 @@ const SEGMENTED = [
 const TAB_GROUPS = [
   { label: '足球联赛', keys: ['football', 'yingchao', 'zhongchao', 'xijia', 'ouguan'] },
   { label: '我的球队', keys: ['mancity', 'arsenal', 'manutd', 'chelsea', 'barcelona', 'realmadrid', 'atletico', 'shenhua', 'shanggang'] },
-  { label: '其他赛事', keys: ['pingpong', 'lol'] },
+  { label: '其他赛事', keys: ['pingpong', 'dejia', 'duesseldorf', 'lol'] },
 ];
 const ALL_KEYS = [...SEGMENTED.map(s => s.key), ...TAB_GROUPS.flatMap(g => g.keys)];
 const NAME = {
@@ -237,10 +237,10 @@ const NAME = {
   mancity: '曼城', arsenal: '阿森纳', manutd: '曼联', chelsea: '切尔西',
   barcelona: '巴塞罗那', realmadrid: '皇马', atletico: '马竞',
   shenhua: '申花', shanggang: '上港',
-  pingpong: '乒乓', lol: 'LOL', other: '其他',
+  pingpong: '乒乓', dejia: '德乒甲', duesseldorf: '杜塞尔多夫', lol: 'LOL', other: '其他',
 };
 const SUB_KEYS = ['yingchao', 'zhongchao', 'ouguan', 'xijia'];
-const TEAM_KEYS = ['mancity', 'arsenal', 'manutd', 'chelsea', 'shenhua', 'shanggang', 'barcelona', 'realmadrid', 'atletico'];
+const TEAM_KEYS = ['mancity', 'arsenal', 'manutd', 'chelsea', 'shenhua', 'shanggang', 'barcelona', 'realmadrid', 'atletico', 'duesseldorf'];
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 
 let category = localStorage.getItem('cat') || 'recommended';
@@ -284,6 +284,7 @@ function dateLabel(ds) {
 
 function matchCategory(e, key) {
   if (SUB_KEYS.includes(key)) return e.category === 'football' && e.sub === key;
+  if (key === 'dejia') return e.category === 'pingpong' && /德甲/.test(e.label || '');
   if (TEAM_KEYS.includes(key)) return Array.isArray(e.teams) && e.teams.includes(key);
   return e.category === key;
 }
