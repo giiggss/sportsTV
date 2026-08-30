@@ -80,9 +80,9 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 静态文件
+  // 静态文件（仓库根目录，与 GitHub Pages 发布结构一致）
   let file = url.pathname === '/' ? '/index.html' : url.pathname;
-  const filePath = path.join(__dirname, 'public', path.normalize(file).replace(/^([.][.][\\/])+/, ''));
+  const filePath = path.join(__dirname, path.normalize(file).replace(/^([.][.][\\/])+/, ''));
   fs.readFile(filePath, (err, buf) => {
     if (err) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
