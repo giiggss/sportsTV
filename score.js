@@ -25,12 +25,12 @@ async function fetchLiveScores() {
 }
 
 // 从 events.json 取关注球队比赛，在比分接口里匹配出"进行中(state=2)"的比赛
-// 匹配规则: sdate 相同 + football + home/away 队名互相包含(应对赛程页与比分接口队名细微差异)
+// 匹配规则: 比分条目的 sdate 与赛程日期相同 + football + home/away 队名互相包含
+// 注意: 不过滤赛程"是否今天"——跨午夜仍在进行的比赛(如23:30开赛)日期已不是今天，
+//       实际日期匹配由 sdate === e.date 完成
 function matchFollowedLive(scoreList, events) {
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const followed = (Array.isArray(events) ? events : [])
-    .filter(e => e.date === today && Array.isArray(e.teams) && e.teams.length > 0);
+    .filter(e => Array.isArray(e.teams) && e.teams.length > 0);
 
   const live = [];
   for (const e of followed) {

@@ -217,16 +217,21 @@ async function runReminders(opts = {}) {
   return { sent: messages.length };
 }
 
-// 今天关注球队是否有比赛可能正在进行中（开赛后150分钟内），用于预判是否需要拉取比分接口
+// 关注球队是否有比赛可能正在进行中（开赛前后共150分钟窗口），用于预判是否需要拉取比分接口
+// 用开赛时间戳比较，正确处理跨午夜的比赛（如23:30开赛、凌晨仍在进行）
 function hasFollowedMaybeLive(events) {
-  const { date, minutes } = beijingNow();
-  const followed = (Array.isArray(events) ? events : [])
-    .filter(e => e.date === date && Array.isArray(e.teams) && e.teams.length > 0);
-  for (const e of followed) {
+  const now = Date.now();
+  const list = (Array.isArray(events) ? events : [])
+    .filter(e => Array.isArray(e.teams) && e.teams.length > 0);
+  for (const e of list) {
     const t = parseTime(e.time);
     if (t === null) continue;
-    const diff = minutes - t;
-    if (diff >= -5 && diff <= 150) return true;
+    const hh = String(Math.floor(t / 60)).padStart(2, '0');
+    const mm = String(t % 60).padStart(2, '0');
+    const kickoff = Date.parse(`${e.date}T${hh}:${mm}:00+08:00`);
+    if (Number.isNaN(kickoff)) continue;
+    const diffMin = (now - kickoff) / 60000;
+    if (diffMin >= -5 && diffMin <= 150) return true;
   }
   return false;
 }
