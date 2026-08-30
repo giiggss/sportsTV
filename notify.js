@@ -120,21 +120,30 @@ function findDueReminders(data, state) {
 
     // 提醒窗口放宽到 ±10 分钟，配合 Actions 每5分钟一次的检查频率；
     // 状态去重保证每场每种提醒只发一次
-    if (diff >= 50 && diff <= 70 && !sent.has(id + ':h1')) {
-      sent.add(id + ':h1');
-      const ch = channelOf(e);
-      messages.push({
-        title: `⏰约1小时后开赛：${matchLabel(e)}`.slice(0, 32),
-        desp: `**${e.time}** ${escMd(e.league)}\n\n${escMd(matchLabel(e))}${ch ? `\n\n直播：${escMd(ch)}` : ''}\n\n[打开今日卡片](${CARD_URL})`,
-        id,
-      });
-    }
     if (diff >= 20 && diff <= 40 && !sent.has(id + ':m30')) {
       sent.add(id + ':m30');
       const ch = channelOf(e);
       messages.push({
         title: `⏰约30分钟后开赛：${matchLabel(e)}`.slice(0, 32),
         desp: `**${e.time}** ${escMd(e.league)}\n\n${escMd(matchLabel(e))}${ch ? `\n\n直播：${escMd(ch)}` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+        id,
+      });
+    }
+    if (diff >= 5 && diff <= 15 && !sent.has(id + ':m10')) {
+      sent.add(id + ':m10');
+      const ch = channelOf(e);
+      messages.push({
+        title: `⏰约10分钟后开赛：${matchLabel(e)}`.slice(0, 32),
+        desp: `**${e.time}** ${escMd(e.league)}\n\n${escMd(matchLabel(e))}${ch ? `\n\n直播：${escMd(ch)}` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+        id,
+      });
+    }
+    if (diff <= 0 && diff >= -10 && !sent.has(id + ':live')) {
+      sent.add(id + ':live');
+      const ch = channelOf(e);
+      messages.push({
+        title: `🔴已开赛：${matchLabel(e)}`.slice(0, 32),
+        desp: `比赛已经开始了，去看球吧！\n\n${escMd(matchLabel(e))}${ch ? `\n\n直播：${escMd(ch)}` : ''}\n\n[打开今日卡片](${CARD_URL})`,
         id,
       });
     }
@@ -200,7 +209,12 @@ async function main() {
   throw new Error(`未知模式: ${MODE}（可用: card / reminders）`);
 }
 
-main().catch(e => {
-  console.error('推送失败:', e.message);
-  process.exit(1);
-});
+// 仅直接运行时才执行主流程（require 时不执行，便于测试）
+if (require.main === module) {
+  main().catch(e => {
+    console.error('推送失败:', e.message);
+    process.exit(1);
+  });
+}
+
+module.exports = { sendServerChan, sendUrl, buildCardMessage, findDueReminders, beijingNow };
