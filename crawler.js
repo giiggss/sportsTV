@@ -160,24 +160,28 @@ function esc(s) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// 关注的球队（与页签"我的球队"一致），卡片只展示这些队伍的比赛
+const FOLLOW_TEAM_KEYS = ['mancity', 'arsenal', 'manutd', 'chelsea', 'barcelona', 'realmadrid', 'atletico', 'shenhua', 'shanggang'];
+
 // 生成"今日赛事"网页版小卡片（data/card.html）
-// 邮件安全：表格布局 + 全内联样式，可直接全选复制进邮件正文保留排版
+// 只展示关注球队的比赛；邮件安全：表格布局 + 全内联样式，可直接全选复制进邮件正文保留排版
 function generateCard(data) {
   const events = Array.isArray(data.events) ? data.events : [];
+  const followed = events.filter(e => Array.isArray(e.teams) && e.teams.some(t => FOLLOW_TEAM_KEYS.includes(t)));
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 
-  // 优先展示今天；今天无赛事则展示最近一个有赛事的日期
-  let day = today, title = '今日赛事';
-  let dayEvents = events.filter(e => e.date === day);
+  // 优先展示今天；今天关注球队没有比赛则展示最近一个有比赛的日期
+  let day = today, title = '我的球队 · 今日赛事';
+  let dayEvents = followed.filter(e => e.date === day);
   if (dayEvents.length === 0) {
-    const dates = [...new Set(events.map(e => e.date))].sort();
+    const dates = [...new Set(followed.map(e => e.date))].sort();
     const next = dates.find(ds => ds >= today);
     if (next) {
       day = next;
-      dayEvents = events.filter(e => e.date === day);
-      if (day !== today) title = '近期赛事';
+      dayEvents = followed.filter(e => e.date === day);
+      if (day !== today) title = '我的球队 · 近期赛事';
     }
   }
 
@@ -190,7 +194,9 @@ function generateCard(data) {
   const week = '周' + WEEK[new Date(day + 'T00:00:00').getDay()];
   const dateText = `${day.slice(5, 7)}月${day.slice(8, 10)}日 ${week}`;
 
-  const rows = shown.map((e) => {
+  const rows = shown.length === 0
+    ? `<tr><td style="padding:28px 0;font-size:17px;color:#98a0ab;text-align:center;">近期没有关注球队的比赛</td></tr>`
+    : shown.map((e) => {
     const teams = e.home && e.away ? `${e.home} vs ${e.away}` : (e.league || '赛事');
     const channel = (e.channel || '').split(/\s+/).slice(0, 2).join(' ');
     const ch = channel.length > 9 ? channel.slice(0, 8) + '…' : channel;
@@ -210,7 +216,7 @@ function generateCard(data) {
   }).join('\n        ');
 
   const more = sorted.length > shown.length
-    ? `<tr><td style="padding:4px 0 12px;font-size:13px;color:#98a0ab;text-align:center;">当天共 ${sorted.length} 场，打开页面查看全部</td></tr>`
+    ? `<tr><td style="padding:4px 0 12px;font-size:13px;color:#98a0ab;text-align:center;">当天关注球队共 ${sorted.length} 场，打开页面查看全部</td></tr>`
     : '';
 
   const html = `<!doctype html>
