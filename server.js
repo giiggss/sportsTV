@@ -24,9 +24,16 @@ function loadConfig() {
 }
 
 function scheduleReminders() {
-  const key = loadConfig().serverchanKey;
+  const cfg = loadConfig();
+  const key = cfg.serverchanKey;
   if (!key) {
     console.log('[notify] config.json 未配置 serverchanKey，本地提醒未启用（云端照常）');
+    return;
+  }
+  // 赛前提醒默认交云端（GitHub Actions），避免本地+云端重复推送
+  // 如需本地赛前提醒（云端不可靠时），把 config.json 的 localReminders 设为 true
+  if (cfg.localReminders !== true) {
+    console.log('[notify] 本地赛前提醒已关闭（交云端，避免重复）');
     return;
   }
   console.log('[notify] 本地赛前提醒已启用');
