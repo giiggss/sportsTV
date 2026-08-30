@@ -54,8 +54,19 @@ function channelOf(e) {
 }
 
 // ---------------- Server酱 ----------------
+// 兼容两代接口：
+//   Server酱³（key 以 sctp 开头）: https://<uid>.push.ft07.com/send/<key>.send
+//   Server酱Turbo（key 以 SCT 开头）: https://sctapi.ftqq.com/<key>.send
+function sendUrl(key) {
+  if (/^sctp\d+/.test(key)) {
+    const uid = key.slice(4).match(/^\d+/)[0];
+    return `https://${uid}.push.ft07.com/send/${key}.send`;
+  }
+  return `https://sctapi.ftqq.com/${key}.send`;
+}
+
 async function sendServerChan(key, title, desp) {
-  const res = await fetch(`https://sctapi.ftqq.com/${key}.send`, {
+  const res = await fetch(sendUrl(key), {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ title, desp }),
