@@ -30,6 +30,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f data/events.json data/card.html
+          git add .github/workflows/match-reminders.yml
           if git diff --cached --quiet; then
             echo "数据无变化，跳过提交"
           else

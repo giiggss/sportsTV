@@ -281,7 +281,48 @@ async function crawl() {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
   console.log(`[crawl] ${new Date().toLocaleString('zh-CN')} 完成，共 ${events.length} 场赛事`);
   generateCard(data);
+  updateReminderCrons(data);
   return data;
+}
+
+// 按关注球队未来的开赛时间，动态生成 match-reminders.yml 的 cron 触发点：
+// 每个不重复的开赛时间生成 3 个 cron（开赛前30分钟 / 前10分钟 / 开赛时，北京时间转UTC），
+// 另加每30分钟一次的兜底。仅云端（CI=true）执行并随数据一起提交，本地不修改工作区。
+function updateReminderCrons(data) {
+  if (!process.env.CI) return;
+  const wfPath = path.join(__dirname, '.github', 'workflows', 'match-reminders.yml');
+  if (!fs.existsSync(wfPath)) return;
+
+  const { today, followed } = pickFollowedDay(data.events);
+  const points = new Set(['*/30 * * * *']); // 兜底：每30分钟检查一次
+  for (const e of followed) {
+    if (!e.date || e.date < today || !e.time) continue;
+    const m = /^(\d{1,2}):(\d{2})/.exec(String(e.time).trim());
+    if (!m) continue;
+    const bj = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    for (const off of [30, 10, 0]) {
+      const utc = (bj - off - 480 + 1440 * 2) % 1440; // 北京时间(UTC+8)转UTC
+      points.add(`${utc % 60} ${Math.floor(utc / 60)} * * *`);
+    }
+  }
+  const crons = [...points];
+  if (crons.length > 40) crons.length = 40;
+
+  const src = fs.readFileSync(wfPath, 'utf8');
+  // 行尾自适应：Windows 工作区可能是 CRLF，云端 checkout 是 LF
+  const nl = src.includes('\r\n') ? '\r\n' : '\n';
+  const onIdx = src.indexOf('on:' + nl);
+  const dispIdx = src.indexOf('  workflow_dispatch');
+  if (onIdx < 0 || dispIdx < 0 || dispIdx < onIdx) return;
+  const cronLines = crons.map(c => `    - cron: '${c}'`).join(nl);
+  const block = `on:${nl}  schedule:${nl}${cronLines}${nl}`;
+  const out = src.slice(0, onIdx) + block + src.slice(dispIdx);
+  if (out === src) {
+    console.log('[cron] 提醒触发点无变化');
+    return;
+  }
+  fs.writeFileSync(wfPath, out, 'utf8');
+  console.log(`[cron] 已按开赛时间更新 match-reminders.yml，共 ${crons.length} 个触发点`);
 }
 
 function loadData() {
@@ -304,7 +345,7 @@ function isStale(data) {
   return !data.events.some(e => e.date === `${y}-${mo}-${d}`);
 }
 
-module.exports = { crawl, loadData, isStale, DATA_FILE, SUB_KEYS, TEAM_KEYS, FOLLOW_TEAM_KEYS, pickFollowedDay };
+module.exports = { crawl, loadData, isStale, DATA_FILE, SUB_KEYS, TEAM_KEYS, FOLLOW_TEAM_KEYS, pickFollowedDay, updateReminderCrons };
 
 // 命令行直接运行: node crawler.js
 if (require.main === module) {
