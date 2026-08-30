@@ -238,7 +238,7 @@ const NAME = {
   mancity: '曼城', arsenal: '阿森纳', manutd: '曼联', chelsea: '切尔西',
   barcelona: '巴塞罗那', realmadrid: '皇马', atletico: '马竞',
   shenhua: '申花', shanggang: '上港',
-  pingpong: '乒乓', dejia: '德乒甲', duesseldorf: '杜塞尔多夫', lol: 'LOL', other: '其他',
+  pingpong: '乒乓', dejia: '德乒', duesseldorf: '杜塞尔多夫', lol: 'LOL', other: '其他',
 };
 const SUB_KEYS = ['yingchao', 'zhongchao', 'ouguan', 'xijia'];
 const TEAM_KEYS = ['mancity', 'arsenal', 'manutd', 'chelsea', 'shenhua', 'shanggang', 'barcelona', 'realmadrid', 'atletico', 'duesseldorf'];
@@ -285,7 +285,7 @@ function dateLabel(ds) {
 
 function matchCategory(e, key) {
   if (SUB_KEYS.includes(key)) return e.category === 'football' && e.sub === key;
-  if (key === 'dejia') return e.category === 'pingpong' && /德甲/.test(e.label || '');
+  if (key === 'dejia') return e.category === 'pingpong' && /德甲|德国杯/.test(e.label || '');
   if (TEAM_KEYS.includes(key)) return Array.isArray(e.teams) && e.teams.includes(key);
   return e.category === key;
 }
@@ -444,7 +444,7 @@ function render() {
 async function load() {
   try {
     // 始终拉取全量数据，分类/日期过滤在前端完成，保证各页签数量统计正确
-    const res = await fetch(DATA_URL);
+    const res = await fetch(DATA_URL, { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     cache = { crawledAt: data.crawledAt, today: localToday(), events: data.events };

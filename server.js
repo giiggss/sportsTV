@@ -125,7 +125,7 @@ const server = http.createServer(async (req, res) => {
     events.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
     const today = new Date();
     const ymd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
     res.end(JSON.stringify({
       crawledAt: data ? data.crawledAt : null,
       total: events.length,

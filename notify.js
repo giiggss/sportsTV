@@ -325,9 +325,9 @@ async function runTTUpdates(opts = {}) {
   const data = loadData();
   if (!data) return { sent: 0 };
 
-  // 关注球队的德乒甲比赛（有官方比赛 id 和轮次信息才可轮询）
+  // 关注球队的 TTBL 比赛（德甲/德国杯，有官方比赛 id 和页面路径才可轮询）
   const tt = (data.events || []).filter(e =>
-    e.category === 'pingpong' && e.ttblId && e.gdIndex &&
+    e.category === 'pingpong' && e.ttblId && e.ttblPath &&
     Array.isArray(e.teams) && e.teams.length > 0);
 
   // 预判：只在开赛前后(前10分~后300分钟，覆盖五局三胜/决胜局)轮询
@@ -346,15 +346,15 @@ async function runTTUpdates(opts = {}) {
   const pages = {};
   const messages = [];
   for (const e of due) {
-    if (!pages[e.gdIndex]) {
+    if (!pages[e.ttblPath]) {
       try {
-        pages[e.gdIndex] = await fetchTTBLGameday(e.gdIndex);
+        pages[e.ttblPath] = await fetchTTBLGameday(e.ttblPath);
       } catch (err) {
-        console.error(`[notify] ttbl 第${e.gdIndex}轮抓取失败: ${err.message}`);
+        console.error(`[notify] ttbl 页面抓取失败: ${err.message}`);
         continue;
       }
     }
-    const m = ((pages[e.gdIndex].matches || []).find(x => x.id === e.ttblId));
+    const m = ((pages[e.ttblPath].matches || []).find(x => x.id === e.ttblId));
     if (!m) continue;
     const games = `${m.homeGames || 0}-${m.awayGames || 0}`;
     const finished = /finish|beend/i.test(m.matchState || '');
@@ -363,14 +363,14 @@ async function runTTUpdates(opts = {}) {
     if (prev && !prev.ft && !finished && prev.games !== games) {
       messages.push({
         title: `🏓 ${e.home} ${games} ${e.away}`.slice(0, 50),
-        desp: `**局分变化**\n\n${e.home} **${games}** ${e.away}\n\n德乒甲${e.url ? `\n\n[观看直播](${e.url})` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+        desp: `**局分变化**\n\n${e.home} **${games}** ${e.away}\n\n${e.league}${e.url ? `\n\n[观看直播](${e.url})` : ''}\n\n[打开今日卡片](${CARD_URL})`,
       });
     }
     // 完赛（整场团队赛结束，推送最终局分）
     if (prev && !prev.ft && finished) {
       messages.push({
         title: `🏁 完赛 ${e.home} ${games} ${e.away}`.slice(0, 50),
-        desp: `**比赛结束**\n\n${e.home} **${games}** ${e.away}\n\n德乒甲最终局分\n\n[打开今日卡片](${CARD_URL})`,
+        desp: `**比赛结束**\n\n${e.home} **${games}** ${e.away}\n\n${e.league}最终局分\n\n[打开今日卡片](${CARD_URL})`,
       });
     }
     state[m.id] = { games, ft: Boolean(finished || (prev && prev.ft)) };

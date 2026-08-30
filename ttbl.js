@@ -59,9 +59,11 @@ function bj(ts) {
 }
 
 // 官方 match -> 内部赛事条目（category/sub/teams 由 crawler 统一补充）
-function toItem(m, teamMap) {
-  const home = teamMap[m.homeTeamId] || m.homeTeamId;
-  const away = teamMap[m.awayTeamId] || m.awayTeamId;
+// homeDe/awayDe: 德文队名（杯赛 match 内嵌，德甲从 teamMap 查出）
+// path: 该场所在页面的站内路径（德甲 gameschedule / 杯赛 gameday），局分轮询定位用
+function toItem(m, homeDe, awayDe, path, league, labelExtra) {
+  const home = TEAM_CN[homeDe] || homeDe;
+  const away = TEAM_CN[awayDe] || awayDe;
   const { date, time } = bj(m.timeStamp || 0);
   const isDuss = home === '杜塞尔多夫' || away === '杜塞尔多夫';
   // 比分只保留关注球队(杜塞尔多夫/樊振东)的完场比赛，其余比赛不存比分
@@ -73,19 +75,19 @@ function toItem(m, teamMap) {
     id: 'ttbl-' + m.id,
     date,
     time: m.isTimeToBeDefined ? '' : time,
-    league: '德乒甲',
+    league,
     home,
     away,
     channel: m.livestreamUrl ? 'TTBL直播' : '',
     status: '',
     important: false,
     type: 'other',
-    label: `乒乓球,德甲,德乒甲,${home},${away}${isDuss ? ',樊振东' : ''}`,
+    label: `乒乓球,${labelExtra},${home},${away}${isDuss ? ',樊振东' : ''}`,
     url: m.livestreamUrl || BASE,
     score,
-    // 局分轮询定位用：官方比赛 id + 所在轮次
+    // 局分轮询定位用：官方比赛 id + 所在页面路径
     ttblId: m.id,
-    gdIndex: m.__gdIndex || null,
+    ttblPath: path,
   };
 }
 
@@ -97,42 +99,66 @@ function seasonSlug() {
   return `${start}-${start + 1}`;
 }
 
-// 抓取德甲赛程，返回内部条目数组（已含 ttblId/gdIndex 附加字段）
+// 抓取德甲+德国杯赛程，返回内部条目数组（已含 ttblId/ttblPath 附加字段）
 async function fetchTTBLItems() {
+  const season = seasonSlug();
+  const items = [];
+  const seen = new Set();
+  const collect = (pageProps, path, league, labelExtra) => {
+    const teamMap = teamMapOf(pageProps);
+    for (const m of pageProps.matches || []) {
+      if (seen.has(m.id)) continue;
+      seen.add(m.id);
+      // 杯赛 match 内嵌队名(homeTeam.name)；德甲只有 id，从 teamMap 查
+      const homeDe = (m.homeTeam && m.homeTeam.name) || teamMap[m.homeTeamId];
+      const awayDe = (m.awayTeam && m.awayTeam.name) || teamMap[m.awayTeamId];
+      if (!homeDe || !awayDe) continue;
+      items.push(toItem(m, homeDe, awayDe, path, league, labelExtra));
+    }
+  };
+
+  // ---- 德甲: 当前轮前4轮~后8轮 ----
   const first = await get(`${BASE}/bundesliga/gameschedule/current/current/all`);
   const props = nextProps(first);
   const cur = (props.selectedGameday || {}).index || 1;
   const total = (props.bundesliga && props.bundesliga.gamedayCount) || cur;
-  const teamMap = teamMapOf(props);
-  const season = seasonSlug();
-
-  const items = [];
-  const collect = (pageProps, gdIndex) => {
-    for (const m of pageProps.matches || []) {
-      if (!teamMap[m.homeTeamId] && !teamMap[m.awayTeamId]) continue;
-      items.push(toItem({ ...m, __gdIndex: gdIndex }, teamMap));
-    }
-  };
-  collect(props, cur);
-
+  collect(props, `bundesliga/gameschedule/${season}/${cur}`, '德乒甲', '德甲,德乒甲');
   // 注意: 轮次参数必须配显式赛季，"current" 别名会忽略轮次返回当前轮
   for (let i = Math.max(1, cur - BEFORE); i <= Math.min(total, cur + AFTER); i++) {
     if (i === cur) continue;
     await new Promise(r => setTimeout(r, 400)); // 轻微节流
     try {
-      collect(nextProps(await get(`${BASE}/bundesliga/gameschedule/${season}/${i}/all`)), i);
+      const path = `bundesliga/gameschedule/${season}/${i}/all`;
+      collect(nextProps(await get(`${BASE}/${path}`)), path, '德乒甲', '德甲,德乒甲');
     } catch (e) {
-      console.error(`[ttbl] 第${i}轮抓取失败: ${e.message}`);
+      console.error(`[ttbl] 德甲第${i}轮抓取失败: ${e.message}`);
     }
   }
 
-  const seen = new Set();
-  return items.filter(x => !seen.has(x.id) && seen.add(x.id));
+  // ---- 德国杯(Leapmotor Pokal): 从首页提取对局页链接(每页含整轮全部比赛) ----
+  try {
+    const home = await get(BASE);
+    const pokalLinks = [...new Set(home.match(/\/pokal\/gameday\/[\w-]+\/\d+\/[\w-]+/gi) || [])]
+      .filter(l => l.includes(`/${season}/`));
+    for (const link of pokalLinks) {
+      await new Promise(r => setTimeout(r, 400));
+      try {
+        collect(nextProps(await get(`${BASE}${link}`)), link.replace(/^\//, ''), '德国杯', '德国杯,德杯');
+      } catch (e) {
+        console.error(`[ttbl] 杯赛页抓取失败: ${e.message}`);
+      }
+    }
+    console.log(`[ttbl] 德国杯对局页 ${pokalLinks.length} 个`);
+  } catch (e) {
+    console.error(`[ttbl] 德国杯抓取失败(不影响其他数据): ${e.message}`);
+  }
+
+  return items;
 }
 
-// 局分轮询用：抓某轮页面，返回该轮 pageProps（含 matches 原始数据）
-async function fetchTTBLGameday(index) {
-  return nextProps(await get(`${BASE}/bundesliga/gameschedule/${seasonSlug()}/${index}/all`));
+// 局分轮询用：抓某页面(德甲轮次/杯赛对局页)，返回 pageProps（含 matches 原始数据）
+async function fetchTTBLGameday(path) {
+  return nextProps(await get(`${BASE}/${path}`));
 }
 
 module.exports = { fetchTTBLItems, fetchTTBLGameday };
