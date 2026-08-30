@@ -41,10 +41,16 @@ function scheduleScoreUpdates() {
     console.log('[notify] config.json 未配置 serverchanKey，比分变化提醒未启用');
     return;
   }
-  console.log('[notify] 本地比分变化提醒已启用');
-  setInterval(() => {
-    runScoreUpdates({ key }).catch(e => console.error('[notify] 比分检查失败:', e.message));
-  }, 60 * 1000).unref();
+  console.log('[notify] 本地比分变化提醒已启用（45~75秒随机间隔）');
+  const tick = () => {
+    runScoreUpdates({ key })
+      .catch(e => console.error('[notify] 比分检查失败:', e.message))
+      .finally(() => {
+        const delay = 45000 + Math.floor(Math.random() * 30000);
+        setTimeout(tick, delay).unref();
+      });
+  };
+  setTimeout(tick, 5000).unref();
 }
 
 // ---------------- 每日定时 ----------------
