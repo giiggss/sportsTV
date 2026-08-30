@@ -217,11 +217,27 @@ async function runReminders(opts = {}) {
   return { sent: messages.length };
 }
 
+// 今天关注球队是否有比赛可能正在进行中（开赛后150分钟内），用于预判是否需要拉取比分接口
+function hasFollowedMaybeLive(events) {
+  const { date, minutes } = beijingNow();
+  const followed = (Array.isArray(events) ? events : [])
+    .filter(e => e.date === date && Array.isArray(e.teams) && e.teams.length > 0);
+  for (const e of followed) {
+    const t = parseTime(e.time);
+    if (t === null) continue;
+    const diff = minutes - t;
+    if (diff >= -5 && diff <= 150) return true;
+  }
+  return false;
+}
+
 // 检查关注球队进行中比赛的比分变化，变化即推送（比分状态独立存 data/score-state.json）
+// 预判: 没有关注比赛进行中时不请求比分接口，避免无谓爬取其他比赛
 async function runScoreUpdates(opts = {}) {
   const key = opts.key || KEY;
   const data = loadData();
   if (!data) return { sent: 0 };
+  if (!hasFollowedMaybeLive(data.events)) return { sent: 0 };
   const scoreList = await fetchLiveScores();
   const live = matchFollowedLive(scoreList, data.events);
   const state = loadScoreState();
@@ -232,7 +248,7 @@ async function runScoreUpdates(opts = {}) {
     const prev = state[m.id];
     if (prev && (prev.home !== m.homeScore || prev.away !== m.awayScore)) {
       messages.push({
-        title: `⚽${m.home} ${m.homeScore}-${m.awayScore} ${m.away}`.slice(0, 32),
+        title: `⚽ ${m.home} ${m.homeScore}-${m.awayScore} ${m.away}`.slice(0, 50),
         desp: `**比分变化**\n\n${m.home} **${m.homeScore}-${m.awayScore}** ${m.away}\n\n${m.period}${m.url ? `\n\n[观看直播](${m.url})` : ''}\n\n[打开今日卡片](${CARD_URL})`,
       });
     }
