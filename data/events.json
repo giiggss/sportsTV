@@ -1,7 +1,7 @@
 {
-  "crawledAt": "2026-08-30T07:38:37.267Z",
+  "crawledAt": "2026-08-30T07:46:27.012Z",
   "source": "https://m.zhibo8.com/",
-  "count": 367,
+  "count": 366,
   "events": [
     {
       "date": "2026-08-30",
@@ -15,22 +15,6 @@
       "type": "basketball",
       "label": "中国篮球,篮球,3x3,FIBA-OPEN3x3云南站day2",
       "url": "https://www.zhibo8.cc/zhibo/nba/2026/match2275176vplayer.htm",
-      "category": "other",
-      "sub": "",
-      "teams": []
-    },
-    {
-      "date": "2026-08-30",
-      "time": "14:00",
-      "league": "CMG群众篮球争霸赛浙江苍南站-五六名排位赛",
-      "home": "呼和浩特队",
-      "away": "南昌队",
-      "channel": "CCTV16",
-      "status": "进行中",
-      "important": true,
-      "type": "basketball",
-      "label": "中国篮球,篮球,呼和浩特队,南昌队,CMG群众篮球争霸赛浙江苍南站-五六名排位赛",
-      "url": "https://www.zhibo8.cc/zhibo/nba/2026/match2272501v.htm",
       "category": "other",
       "sub": "",
       "teams": []
