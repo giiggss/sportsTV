@@ -5,106 +5,190 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>每日赛事 - 足球 / 乒乓 / LOL</title>
 <style>
+  :root {
+    --accent: #2e6be6;        /* 主题色 */
+    --accent-light: #eef3fe;  /* 主题极浅底 */
+    --accent-border: #ccd9f6; /* 主题浅边框 */
+    --text: #333;
+    --text-2: #888;
+    --text-3: #aaa;
+    --line: #f0f1f2;          /* 分割线 */
+    --line-2: #e6e8eb;        /* 控件边框 */
+    --bg-soft: #f7f8f9;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: #f5f6f7;
-    color: #222;
+    background: #fff;
+    color: var(--text);
     min-height: 100vh;
   }
-  .container { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+  .container { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; }
 
-  header { margin-bottom: 20px; }
-  header h1 { font-size: 22px; font-weight: 600; }
-  header .meta { margin-top: 6px; font-size: 13px; color: #999; display: flex; align-items: center; gap: 12px; }
-  header .meta button {
-    border: 1px solid #ddd; background: #fff; color: #555;
-    padding: 3px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;
+  /* ---------- 顶部 ---------- */
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+  .topbar h1 { font-size: 20px; font-weight: 600; }
+  .topbar .meta { margin-top: 6px; font-size: 13px; color: var(--text-3); }
+  .icon-btn {
+    margin-top: 2px; width: 30px; height: 30px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: none; background: transparent; border-radius: 6px;
+    color: var(--text-2); cursor: pointer;
   }
-  header .meta button:hover { border-color: #bbb; }
+  .icon-btn:hover { background: var(--bg-soft); color: var(--text); }
+  .icon-btn svg { width: 16px; height: 16px; }
 
-  /* 分类页签（分组） */
-  .tabs { margin-bottom: 16px; }
-  .tab-group { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-  .tab-label { font-size: 12px; color: #aaa; width: 72px; flex-shrink: 0; }
-  .tabs button {
-    border: 1px solid #ddd; background: #fff; color: #444;
-    padding: 8px 18px; border-radius: 4px; font-size: 14px; cursor: pointer;
+  /* ---------- 推荐/全部 分段控制器 ---------- */
+  .segmented {
+    display: inline-flex; background: var(--bg-soft);
+    border-radius: 8px; padding: 3px; margin-bottom: 20px;
   }
-  .tabs button.active { background: #222; color: #fff; border-color: #222; }
-  .tabs button .num { margin-left: 4px; font-size: 12px; color: #999; }
-  .tabs button.active .num { color: #ccc; }
-
-  /* 日期选择 */
-  .dates { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-  .dates button {
-    border: 1px solid #e5e5e5; background: #fff; color: #666;
-    padding: 5px 12px; border-radius: 4px; font-size: 13px; cursor: pointer;
+  .segmented button {
+    border: none; background: transparent; color: var(--text-2);
+    padding: 6px 20px; border-radius: 6px; font-size: 14px; cursor: pointer;
   }
-  .dates button.active { border-color: #222; color: #222; font-weight: 600; }
-  .dates button small { color: #aaa; margin-left: 4px; }
+  .segmented button.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+  .segmented button .num { margin-left: 4px; font-size: 12px; color: var(--text-3); }
+  .segmented button.active .num { color: var(--accent); opacity: .65; }
 
-  /* 赛事列表 */
-  .list { display: flex; flex-direction: column; gap: 8px; }
-  .event {
+  /* ---------- 筛选标签分组 ---------- */
+  .fgroup { display: flex; align-items: flex-start; gap: 12px; }
+  .fgroup + .fgroup { margin-top: 16px; } /* 组间垂直留白 */
+  .fgroup-label {
+    flex-shrink: 0; width: 60px; padding-top: 6px;
+    font-size: 12px; color: var(--text-3);
+  }
+  .ftags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ftags button {
+    border: 1px solid var(--line-2); background: #fff; color: var(--text-2);
+    padding: 5px 14px; border-radius: 999px; font-size: 13px; cursor: pointer;
+    line-height: 1.4;
+  }
+  .ftags button:hover { color: var(--text); border-color: #d0d3d8; }
+  .ftags button.active {
+    color: var(--accent); background: var(--accent-light);
+    border-color: var(--accent-border); font-weight: 600;
+  }
+  .ftags button .num { margin-left: 3px; font-size: 11px; color: #b8bcc2; }
+  .ftags button.active .num { color: var(--accent); opacity: .6; }
+
+  /* ---------- 日期横向滚动条 ---------- */
+  .date-row { display: flex; align-items: center; gap: 8px; margin: 22px 0 4px; }
+  .date-arrow {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+    border: 1px solid var(--line-2); background: #fff; color: var(--text-2);
+    font-size: 14px; line-height: 1; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .date-arrow:hover { color: var(--text); border-color: #d0d3d8; }
+  .date-arrow.off { opacity: .3; pointer-events: none; }
+  .date-scroll {
+    display: flex; gap: 8px; overflow-x: auto; scroll-behavior: smooth;
+    scrollbar-width: none; padding: 2px;
+  }
+  .date-scroll::-webkit-scrollbar { display: none; }
+  .date-chip {
+    flex-shrink: 0; min-width: 62px; text-align: center;
+    border: 1px solid transparent; background: var(--bg-soft); color: var(--text-2);
+    border-radius: 8px; padding: 5px 10px; cursor: pointer;
+  }
+  .date-chip .d { font-size: 13px; }
+  .date-chip .w { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+  .date-chip:hover { color: var(--text); }
+  .date-chip.active { background: var(--accent-light); border-color: var(--accent-border); color: var(--accent); }
+  .date-chip.active .w { color: var(--accent); opacity: .65; }
+
+  /* ---------- 赛事列表（行式极简） ---------- */
+  .list { margin-top: 10px; }
+  .ghead { margin: 18px 0 2px; font-size: 12px; color: var(--text-3); font-weight: 500; }
+  .list .ghead:first-child { margin-top: 6px; }
+  .erow {
     display: flex; align-items: center; gap: 14px;
-    background: #fff; border: 1px solid #ececec; border-radius: 6px;
-    padding: 12px 16px;
+    padding: 13px 4px; border-bottom: 1px solid var(--line);
   }
-  .event .time { width: 46px; font-size: 15px; font-weight: 600; flex-shrink: 0; }
-  .event .info { flex: 1; min-width: 0; }
-  .event .league { font-size: 12px; color: #999; display: flex; align-items: center; gap: 6px; }
-  .event .league .hot { color: #c0392b; border: 1px solid #e8c5c0; border-radius: 3px; padding: 0 4px; font-size: 11px; }
-  .event .teams { margin-top: 3px; font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .event .teams .vs { color: #aaa; margin: 0 6px; font-size: 12px; }
-  .event .side { flex-shrink: 0; text-align: right; display: flex; align-items: center; gap: 10px; }
-  .event .channel { font-size: 12px; color: #888; }
-  .event .status { font-size: 12px; color: #2e7d32; }
-  .event .status.live { color: #c0392b; }
-  .event a.watch {
-    font-size: 13px; color: #555; text-decoration: none;
-    border: 1px solid #ddd; border-radius: 4px; padding: 4px 12px;
+  .erow .t { width: 46px; flex-shrink: 0; font-size: 14px; color: var(--text-2); }
+  .erow .mid { flex: 1; min-width: 0; }
+  .erow .league { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); }
+  .erow .league .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .erow .league .hot {
+    flex-shrink: 0; font-size: 11px; padding: 1px 6px; border-radius: 3px;
+    background: #fbeaea; color: #b23b32;
   }
-  .event a.watch:hover { background: #222; color: #fff; border-color: #222; }
+  .erow .teams {
+    margin-top: 4px; font-size: 16px; font-weight: 600; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .erow .teams .vs { color: var(--text-3); margin: 0 6px; font-size: 12px; font-weight: 400; }
+  .erow .right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .erow .status { font-size: 12px; color: #3d8b40; }
+  .erow .status.live { color: #b23b32; }
+  .erow .channel {
+    font-size: 11px; color: var(--text-2); background: var(--bg-soft);
+    padding: 2px 7px; border-radius: 3px; white-space: nowrap;
+  }
+  .erow a.watch {
+    font-size: 12px; color: var(--accent); text-decoration: none;
+    border: 1px solid var(--accent-border); border-radius: 999px; padding: 4px 13px;
+  }
+  .erow a.watch:hover { background: var(--accent-light); }
 
-  .cat-tag { font-size: 11px; border-radius: 3px; padding: 1px 5px; }
-  .cat-football { color: #1b5e20; background: #e8f0e8; }
-  .cat-pingpong { color: #1a4a7a; background: #e6edf5; }
-  .cat-lol { color: #5d4037; background: #f0e9e6; }
-  .cat-other { color: #777; background: #f0f0f0; }
+  .empty { text-align: center; color: var(--text-3); padding: 60px 0; font-size: 14px; }
+  .err { text-align: center; color: #b23b32; padding: 40px 0; font-size: 14px; }
 
-  .empty { text-align: center; color: #999; padding: 60px 0; font-size: 14px; }
-  .err { text-align: center; color: #c0392b; padding: 40px 0; font-size: 14px; }
+  footer { margin-top: 32px; font-size: 12px; color: #c0c3c8; text-align: center; }
 
-  footer { margin-top: 24px; font-size: 12px; color: #bbb; text-align: center; }
+  /* ---------- 移动端 ---------- */
+  @media (max-width: 640px) {
+    .container { padding: 20px 14px 48px; }
+    .fgroup { flex-direction: column; gap: 8px; }
+    .fgroup-label { width: auto; padding-top: 0; }
+    .date-arrow { display: none; } /* 触屏直接滑动 */
+    .erow { gap: 10px; padding: 12px 0; }
+    .erow .t { width: 40px; font-size: 13px; }
+    .erow .teams { font-size: 15px; }
+    .erow .channel { max-width: 76px; overflow: hidden; text-overflow: ellipsis; }
+  }
 </style>
 </head>
 <body>
 <div class="container">
-  <header>
-    <h1>每日赛事</h1>
-    <div class="meta">
-      <span id="meta">加载中…</span>
-      <button id="refresh">刷新</button>
+  <header class="topbar">
+    <div>
+      <h1>每日赛事</h1>
+      <div class="meta"><span id="meta">加载中…</span></div>
     </div>
+    <button id="refresh" class="icon-btn" title="重新抓取数据">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+    </button>
   </header>
 
-  <div class="tabs" id="tabs"></div>
-  <div class="dates" id="dates"></div>
+  <div class="segmented" id="segmented"></div>
+
+  <section id="tabs"></section>
+
+  <div class="date-row">
+    <button class="date-arrow" id="datePrev" title="向前">‹</button>
+    <div class="date-scroll" id="dates"></div>
+    <button class="date-arrow" id="dateNext" title="向后">›</button>
+  </div>
+
   <div class="list" id="list"><div class="empty">加载中…</div></div>
 
   <footer>数据来源：直播吧 zhibo8.com · 仅供个人学习参考</footer>
 </div>
 
 <script>
-// 页签按组显示，避免一行堆满
+// 页签数据：推荐/全部为顶部分段控制器，其余按三组展示
+const SEGMENTED = [
+  { key: 'recommended', name: '推荐' },
+  { key: 'all',         name: '全部' },
+];
 const TAB_GROUPS = [
-  { label: '视图', keys: ['recommended', 'all'] },
-  { label: '足球·联赛', keys: ['football', 'yingchao', 'zhongchao', 'xijia', 'ouguan'] },
-  { label: '足球·球队', keys: ['mancity', 'arsenal', 'manutd', 'chelsea', 'barcelona', 'realmadrid', 'atletico', 'shenhua', 'shanggang'] },
+  { label: '足球联赛', keys: ['football', 'yingchao', 'zhongchao', 'xijia', 'ouguan'] },
+  { label: '我的球队', keys: ['mancity', 'arsenal', 'manutd', 'chelsea', 'barcelona', 'realmadrid', 'atletico', 'shenhua', 'shanggang'] },
   { label: '其他赛事', keys: ['pingpong', 'lol'] },
 ];
-const ALL_KEYS = TAB_GROUPS.flatMap(g => g.keys);
+const ALL_KEYS = [...SEGMENTED.map(s => s.key), ...TAB_GROUPS.flatMap(g => g.keys)];
 const NAME = {
   recommended: '推荐', all: '全部',
   football: '足球', yingchao: '英超', zhongchao: '中超', xijia: '西甲', ouguan: '欧冠',
@@ -113,7 +197,6 @@ const NAME = {
   shenhua: '申花', shanggang: '上港',
   pingpong: '乒乓', lol: 'LOL', other: '其他',
 };
-const CAT_NAME = NAME; // 赛事卡片上的分类标签沿用同一份名称表
 const SUB_KEYS = ['yingchao', 'zhongchao', 'ouguan', 'xijia'];
 const TEAM_KEYS = ['mancity', 'arsenal', 'manutd', 'chelsea', 'shenhua', 'shanggang', 'barcelona', 'realmadrid', 'atletico'];
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
@@ -128,6 +211,10 @@ const $tabs = document.getElementById('tabs');
 const $dates = document.getElementById('dates');
 const $meta = document.getElementById('meta');
 
+// GitHub Pages 静态部署时读取仓库内数据文件（由 Actions 每日更新）；本地运行读本地 API
+const IS_STATIC = location.hostname.endsWith('github.io');
+const DATA_URL = IS_STATIC ? 'data/events.json' : '/api/events';
+
 function fmtDateTime(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -141,51 +228,16 @@ function availableDates() {
   return seen;
 }
 
+function localToday() {
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+}
+
 function dateLabel(ds) {
   const d = new Date(ds + 'T00:00:00');
   const label = ds === cache.today ? '今天' :
-    `${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日`;
+    `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
   return { label, week: '周' + WEEK[d.getDay()] };
-}
-
-function renderTabs(counts) {
-  $tabs.innerHTML = '';
-  for (const g of TAB_GROUPS) {
-    const row = document.createElement('div');
-    row.className = 'tab-group';
-    const label = document.createElement('span');
-    label.className = 'tab-label';
-    label.textContent = g.label;
-    row.appendChild(label);
-    for (const key of g.keys) {
-      const btn = document.createElement('button');
-      if (key === category) btn.classList.add('active');
-      btn.innerHTML = NAME[key] + (counts[key] !== undefined ? ` <span class="num">${counts[key]}</span>` : '');
-      btn.onclick = () => {
-        category = key;
-        localStorage.setItem('cat', category);
-        render(); // 数据已全量缓存，本地过滤即可，数量不会错
-      };
-      row.appendChild(btn);
-    }
-    $tabs.appendChild(row);
-  }
-}
-
-function renderDates(dates) {
-  $dates.innerHTML = '';
-  const mkBtn = (val, html) => {
-    const btn = document.createElement('button');
-    if ((dateFilter || '') === (val || '')) btn.classList.add('active');
-    btn.innerHTML = html;
-    btn.onclick = () => { dateFilter = val; render(); }; // 重新渲染时页签数量会按所选日期重算
-    return btn;
-  };
-  if (dates.length > 1) $dates.appendChild(mkBtn('', '全部日期'));
-  for (const ds of dates) {
-    const { label, week } = dateLabel(ds);
-    $dates.appendChild(mkBtn(ds, `${label}<small>${week}</small>`));
-  }
 }
 
 function matchCategory(e, key) {
@@ -202,6 +254,87 @@ function filtered() {
   return ev;
 }
 
+// ---------- 顶部：推荐/全部 分段控制器 ----------
+function renderSegmented(counts) {
+  const $seg = document.getElementById('segmented');
+  $seg.innerHTML = '';
+  for (const c of SEGMENTED) {
+    const btn = document.createElement('button');
+    if (c.key === category) btn.classList.add('active');
+    btn.innerHTML = c.name + (counts[c.key] !== undefined ? ` <span class="num">${counts[c.key]}</span>` : '');
+    btn.onclick = () => {
+      category = c.key;
+      localStorage.setItem('cat', category);
+      render(); // 数据已全量缓存，本地过滤即可
+    };
+    $seg.appendChild(btn);
+  }
+}
+
+// ---------- 筛选标签：三组，组间留白 ----------
+function renderTabs(counts) {
+  $tabs.innerHTML = '';
+  for (const g of TAB_GROUPS) {
+    const row = document.createElement('div');
+    row.className = 'fgroup';
+    const label = document.createElement('div');
+    label.className = 'fgroup-label';
+    label.textContent = g.label;
+    row.appendChild(label);
+    const wrap = document.createElement('div');
+    wrap.className = 'ftags';
+    for (const key of g.keys) {
+      const btn = document.createElement('button');
+      if (key === category) btn.classList.add('active');
+      btn.innerHTML = NAME[key] + (counts[key] !== undefined ? ` <span class="num">${counts[key]}</span>` : '');
+      btn.onclick = () => {
+        category = key;
+        localStorage.setItem('cat', category);
+        render(); // 数据已全量缓存，本地过滤即可，数量不会错
+      };
+      wrap.appendChild(btn);
+    }
+    row.appendChild(wrap);
+    $tabs.appendChild(row);
+  }
+}
+
+// ---------- 日期：横向滚动选择器 ----------
+function renderDates(dates) {
+  $dates.innerHTML = '';
+  const mkChip = (val, top, week) => {
+    const btn = document.createElement('button');
+    btn.className = 'date-chip' + ((dateFilter || '') === (val || '') ? ' active' : '');
+    btn.innerHTML = `<div class="d">${top}</div><div class="w">${week}</div>`;
+    btn.onclick = () => { dateFilter = val; render(); }; // 重新渲染时页签数量会按所选日期重算
+    return btn;
+  };
+  if (dates.length > 1) $dates.appendChild(mkChip('', '全部', '所有'));
+  for (const ds of dates) {
+    const { label, week } = dateLabel(ds);
+    $dates.appendChild(mkChip(ds, label, week));
+  }
+  // 滚动到选中项，保证可见
+  requestAnimationFrame(() => {
+    const active = $dates.querySelector('.active');
+    if (active) active.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  });
+  updateArrows();
+}
+
+function updateArrows() {
+  const el = $dates;
+  const prev = document.getElementById('datePrev');
+  const next = document.getElementById('dateNext');
+  prev.classList.toggle('off', el.scrollLeft <= 2);
+  next.classList.toggle('off', el.scrollLeft + el.clientWidth >= el.scrollWidth - 2);
+}
+
+document.getElementById('datePrev').onclick = () => $dates.scrollBy({ left: -240, behavior: 'smooth' });
+document.getElementById('dateNext').onclick = () => $dates.scrollBy({ left: 240, behavior: 'smooth' });
+$dates.addEventListener('scroll', updateArrows, { passive: true });
+
+// ---------- 列表 ----------
 function renderList() {
   const ev = filtered();
   if (ev.length === 0) {
@@ -215,29 +348,28 @@ function renderList() {
       lastDate = e.date;
       const { label, week } = dateLabel(e.date);
       const head = document.createElement('div');
-      head.style.cssText = 'margin:14px 0 2px;font-size:13px;color:#888;font-weight:600;';
-      head.textContent = `${label} ${week}`;
+      head.className = 'ghead';
+      head.textContent = `${label.replace('.', '月')}日 ${week}`;
       $list.appendChild(head);
     }
     const div = document.createElement('div');
-    div.className = 'event';
+    div.className = 'erow';
     const teams = e.home && e.away
       ? `${e.home}<span class="vs">vs</span>${e.away}`
       : (e.league || '赛事');
     const status = e.status ? `<span class="status ${/进行中|上半|下半|第\S+节|中场/.test(e.status) ? 'live' : ''}">${e.status}</span>` : '';
     div.innerHTML = `
-      <div class="time">${e.time || '--'}</div>
-      <div class="info">
+      <div class="t">${e.time || '--'}</div>
+      <div class="mid">
         <div class="league">
-          <span class="cat-tag cat-${e.category}">${CAT_NAME[e.sub] || CAT_NAME[e.category] || '其他'}</span>
-          ${e.league ? `<span>${e.league}</span>` : ''}
+          <span class="name">${e.league || ''}</span>
           ${e.important ? '<span class="hot">重要</span>' : ''}
         </div>
         <div class="teams">${teams}</div>
       </div>
-      <div class="side">
-        ${e.channel ? `<span class="channel">${e.channel}</span>` : ''}
+      <div class="right">
         ${status}
+        ${e.channel ? `<span class="channel">${e.channel}</span>` : ''}
         ${e.url ? `<a class="watch" href="${e.url}" target="_blank" rel="noopener">观看</a>` : ''}
       </div>`;
     $list.appendChild(div);
@@ -259,17 +391,9 @@ function render() {
         ? base.length
         : base.filter(e => matchCategory(e, key)).length;
   }
+  renderSegmented(counts);
   renderTabs(counts);
   $meta.textContent = `共 ${counts.all} 场 · 更新于 ${fmtDateTime(cache.crawledAt)}`;
-}
-
-// GitHub Pages 静态部署时读取仓库内数据文件（由 Actions 每日更新）；本地运行读本地 API
-const IS_STATIC = location.hostname.endsWith('github.io');
-const DATA_URL = IS_STATIC ? 'data/events.json' : '/api/events';
-
-function localToday() {
-  const t = new Date();
-  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
 }
 
 async function load() {
