@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日赛事 - 足球 / 乒乓 / LOL</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f5f6f7;
+    color: #222;
+    min-height: 100vh;
+  }
+  .container { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+
+  header { margin-bottom: 20px; }
+  header h1 { font-size: 22px; font-weight: 600; }
+  header .meta { margin-top: 6px; font-size: 13px; color: #999; display: flex; align-items: center; gap: 12px; }
+  header .meta button {
+    border: 1px solid #ddd; background: #fff; color: #555;
+    padding: 3px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;
+  }
+  header .meta button:hover { border-color: #bbb; }
+
+  /* 分类页签（分组） */
+  .tabs { margin-bottom: 16px; }
+  .tab-group { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .tab-label { font-size: 12px; color: #aaa; width: 72px; flex-shrink: 0; }
+  .tabs button {
+    border: 1px solid #ddd; background: #fff; color: #444;
+    padding: 8px 18px; border-radius: 4px; font-size: 14px; cursor: pointer;
+  }
+  .tabs button.active { background: #222; color: #fff; border-color: #222; }
+  .tabs button .num { margin-left: 4px; font-size: 12px; color: #999; }
+  .tabs button.active .num { color: #ccc; }
+
+  /* 日期选择 */
+  .dates { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .dates button {
+    border: 1px solid #e5e5e5; background: #fff; color: #666;
+    padding: 5px 12px; border-radius: 4px; font-size: 13px; cursor: pointer;
+  }
+  .dates button.active { border-color: #222; color: #222; font-weight: 600; }
+  .dates button small { color: #aaa; margin-left: 4px; }
+
+  /* 赛事列表 */
+  .list { display: flex; flex-direction: column; gap: 8px; }
+  .event {
+    display: flex; align-items: center; gap: 14px;
+    background: #fff; border: 1px solid #ececec; border-radius: 6px;
+    padding: 12px 16px;
+  }
+  .event .time { width: 46px; font-size: 15px; font-weight: 600; flex-shrink: 0; }
+  .event .info { flex: 1; min-width: 0; }
+  .event .league { font-size: 12px; color: #999; display: flex; align-items: center; gap: 6px; }
+  .event .league .hot { color: #c0392b; border: 1px solid #e8c5c0; border-radius: 3px; padding: 0 4px; font-size: 11px; }
+  .event .teams { margin-top: 3px; font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .event .teams .vs { color: #aaa; margin: 0 6px; font-size: 12px; }
+  .event .side { flex-shrink: 0; text-align: right; display: flex; align-items: center; gap: 10px; }
+  .event .channel { font-size: 12px; color: #888; }
+  .event .status { font-size: 12px; color: #2e7d32; }
+  .event .status.live { color: #c0392b; }
+  .event a.watch {
+    font-size: 13px; color: #555; text-decoration: none;
+    border: 1px solid #ddd; border-radius: 4px; padding: 4px 12px;
+  }
+  .event a.watch:hover { background: #222; color: #fff; border-color: #222; }
+
+  .cat-tag { font-size: 11px; border-radius: 3px; padding: 1px 5px; }
+  .cat-football { color: #1b5e20; background: #e8f0e8; }
+  .cat-pingpong { color: #1a4a7a; background: #e6edf5; }
+  .cat-lol { color: #5d4037; background: #f0e9e6; }
+  .cat-other { color: #777; background: #f0f0f0; }
+
+  .empty { text-align: center; color: #999; padding: 60px 0; font-size: 14px; }
+  .err { text-align: center; color: #c0392b; padding: 40px 0; font-size: 14px; }
+
+  footer { margin-top: 24px; font-size: 12px; color: #bbb; text-align: center; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>每日赛事</h1>
+    <div class="meta">
+      <span id="meta">加载中…</span>
+      <button id="refresh">刷新</button>
+    </div>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+  <div class="dates" id="dates"></div>
+  <div class="list" id="list"><div class="empty">加载中…</div></div>
+
+  <footer>数据来源：直播吧 zhibo8.com · 仅供个人学习参考</footer>
+</div>
+
+<script>
+// 页签按组显示，避免一行堆满
+const TAB_GROUPS = [
+  { label: '视图', keys: ['recommended', 'all'] },
+  { label: '足球·联赛', keys: ['football', 'yingchao', 'zhongchao', 'xijia', 'ouguan'] },
+  { label: '足球·球队', keys: ['mancity', 'arsenal', 'manutd', 'chelsea', 'barcelona', 'realmadrid', 'atletico', 'shenhua', 'shanggang'] },
+  { label: '其他赛事', keys: ['pingpong', 'lol'] },
+];
+const ALL_KEYS = TAB_GROUPS.flatMap(g => g.keys);
+const NAME = {
+  recommended: '推荐', all: '全部',
+  football: '足球', yingchao: '英超', zhongchao: '中超', xijia: '西甲', ouguan: '欧冠',
+  mancity: '曼城', arsenal: '阿森纳', manutd: '曼联', chelsea: '切尔西',
+  barcelona: '巴塞罗那', realmadrid: '皇马', atletico: '马竞',
+  shenhua: '申花', shanggang: '上港',
+  pingpong: '乒乓', lol: 'LOL', other: '其他',
+};
+const CAT_NAME = NAME; // 赛事卡片上的分类标签沿用同一份名称表
+const SUB_KEYS = ['yingchao', 'zhongchao', 'ouguan', 'xijia'];
+const TEAM_KEYS = ['mancity', 'arsenal', 'manutd', 'chelsea', 'shenhua', 'shanggang', 'barcelona', 'realmadrid', 'atletico'];
+const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
+
+let category = localStorage.getItem('cat') || 'recommended';
+if (!ALL_KEYS.includes(category)) category = 'recommended';
+let dateFilter = '';   // '' = 全部日期
+let cache = null;      // { crawledAt, today, events }
+
+const $list = document.getElementById('list');
+const $tabs = document.getElementById('tabs');
+const $dates = document.getElementById('dates');
+const $meta = document.getElementById('meta');
+
+function fmtDateTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+// 可用日期（保持原顺序：今天在前）
+function availableDates() {
+  const seen = [];
+  for (const e of cache.events) if (!seen.includes(e.date)) seen.push(e.date);
+  return seen;
+}
+
+function dateLabel(ds) {
+  const d = new Date(ds + 'T00:00:00');
+  const label = ds === cache.today ? '今天' :
+    `${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日`;
+  return { label, week: '周' + WEEK[d.getDay()] };
+}
+
+function renderTabs(counts) {
+  $tabs.innerHTML = '';
+  for (const g of TAB_GROUPS) {
+    const row = document.createElement('div');
+    row.className = 'tab-group';
+    const label = document.createElement('span');
+    label.className = 'tab-label';
+    label.textContent = g.label;
+    row.appendChild(label);
+    for (const key of g.keys) {
+      const btn = document.createElement('button');
+      if (key === category) btn.classList.add('active');
+      btn.innerHTML = NAME[key] + (counts[key] !== undefined ? ` <span class="num">${counts[key]}</span>` : '');
+      btn.onclick = () => {
+        category = key;
+        localStorage.setItem('cat', category);
+        render(); // 数据已全量缓存，本地过滤即可，数量不会错
+      };
+      row.appendChild(btn);
+    }
+    $tabs.appendChild(row);
+  }
+}
+
+function renderDates(dates) {
+  $dates.innerHTML = '';
+  const mkBtn = (val, html) => {
+    const btn = document.createElement('button');
+    if ((dateFilter || '') === (val || '')) btn.classList.add('active');
+    btn.innerHTML = html;
+    btn.onclick = () => { dateFilter = val; render(); }; // 重新渲染时页签数量会按所选日期重算
+    return btn;
+  };
+  if (dates.length > 1) $dates.appendChild(mkBtn('', '全部日期'));
+  for (const ds of dates) {
+    const { label, week } = dateLabel(ds);
+    $dates.appendChild(mkBtn(ds, `${label}<small>${week}</small>`));
+  }
+}
+
+function matchCategory(e, key) {
+  if (SUB_KEYS.includes(key)) return e.category === 'football' && e.sub === key;
+  if (TEAM_KEYS.includes(key)) return Array.isArray(e.teams) && e.teams.includes(key);
+  return e.category === key;
+}
+
+function filtered() {
+  let ev = cache.events;
+  if (category === 'recommended') ev = ev.filter(e => ['football', 'pingpong', 'lol'].includes(e.category) && e.important);
+  else if (category !== 'all') ev = ev.filter(e => matchCategory(e, category));
+  if (dateFilter) ev = ev.filter(e => e.date === dateFilter);
+  return ev;
+}
+
+function renderList() {
+  const ev = filtered();
+  if (ev.length === 0) {
+    $list.innerHTML = '<div class="empty">暂无赛事</div>';
+    return;
+  }
+  $list.innerHTML = '';
+  let lastDate = '';
+  for (const e of ev) {
+    if (dateFilter === '' && e.date !== lastDate) {
+      lastDate = e.date;
+      const { label, week } = dateLabel(e.date);
+      const head = document.createElement('div');
+      head.style.cssText = 'margin:14px 0 2px;font-size:13px;color:#888;font-weight:600;';
+      head.textContent = `${label} ${week}`;
+      $list.appendChild(head);
+    }
+    const div = document.createElement('div');
+    div.className = 'event';
+    const teams = e.home && e.away
+      ? `${e.home}<span class="vs">vs</span>${e.away}`
+      : (e.league || '赛事');
+    const status = e.status ? `<span class="status ${/进行中|上半|下半|第\S+节|中场/.test(e.status) ? 'live' : ''}">${e.status}</span>` : '';
+    div.innerHTML = `
+      <div class="time">${e.time || '--'}</div>
+      <div class="info">
+        <div class="league">
+          <span class="cat-tag cat-${e.category}">${CAT_NAME[e.sub] || CAT_NAME[e.category] || '其他'}</span>
+          ${e.league ? `<span>${e.league}</span>` : ''}
+          ${e.important ? '<span class="hot">重要</span>' : ''}
+        </div>
+        <div class="teams">${teams}</div>
+      </div>
+      <div class="side">
+        ${e.channel ? `<span class="channel">${e.channel}</span>` : ''}
+        ${status}
+        ${e.url ? `<a class="watch" href="${e.url}" target="_blank" rel="noopener">观看</a>` : ''}
+      </div>`;
+    $list.appendChild(div);
+  }
+}
+
+function render() {
+  if (!cache) return;
+  const dates = availableDates();
+  renderDates(dates);
+  renderList();
+  // 页签数量跟随所选日期：先按日期过滤，再统计各分类
+  const base = dateFilter ? cache.events.filter(e => e.date === dateFilter) : cache.events;
+  const counts = {};
+  for (const key of ALL_KEYS) {
+    counts[key] = key === 'recommended'
+      ? base.filter(e => ['football', 'pingpong', 'lol'].includes(e.category) && e.important).length
+      : key === 'all'
+        ? base.length
+        : base.filter(e => matchCategory(e, key)).length;
+  }
+  renderTabs(counts);
+  $meta.textContent = `共 ${counts.all} 场 · 更新于 ${fmtDateTime(cache.crawledAt)}`;
+}
+
+async function load() {
+  try {
+    // 始终拉取全量数据，分类/日期过滤在前端完成，保证各页签数量统计正确
+    const res = await fetch('/api/events');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    cache = { crawledAt: data.crawledAt, today: data.today, events: data.events };
+    if (dateFilter && !availableDates().includes(dateFilter)) dateFilter = '';
+    render();
+  } catch (e) {
+    $list.innerHTML = `<div class="err">加载失败：${e.message}</div>`;
+  }
+}
+
+document.getElementById('refresh').onclick = async () => {
+  $meta.textContent = '正在抓取最新数据…';
+  await fetch('/api/crawl');
+  load();
+};
+
+load();
+// 每 5 分钟自动刷新页面数据
+setInterval(load, 5 * 60 * 1000);
+</script>
+</body>
+</html>
