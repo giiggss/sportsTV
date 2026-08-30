@@ -160,7 +160,8 @@ function esc(s) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// 生成"今日赛事"小卡片（SVG，每天随爬取自动更新，可保存/分享）
+// 生成"今日赛事"网页版小卡片（data/card.html）
+// 邮件安全：表格布局 + 全内联样式，可直接全选复制进邮件正文保留排版
 function generateCard(data) {
   const events = Array.isArray(data.events) ? data.events : [];
   const now = new Date();
@@ -186,40 +187,70 @@ function generateCard(data) {
     (a.time || '').localeCompare(b.time || ''));
   const shown = sorted.slice(0, 14);
 
-  const W = 750, PAD = 44;
-  const rowH = 80, headH = 170, footH = 100;
-  const H = headH + shown.length * rowH + footH;
   const week = '周' + WEEK[new Date(day + 'T00:00:00').getDay()];
   const dateText = `${day.slice(5, 7)}月${day.slice(8, 10)}日 ${week}`;
 
-  const rows = shown.map((e, i) => {
-    const cy = headH + i * rowH;
+  const rows = shown.map((e) => {
     const teams = e.home && e.away ? `${e.home} vs ${e.away}` : (e.league || '赛事');
     const channel = (e.channel || '').split(/\s+/).slice(0, 2).join(' ');
     const ch = channel.length > 9 ? channel.slice(0, 8) + '…' : channel;
     // 重要赛事的时间用红色标识
     const timeColor = e.important ? '#d8453e' : '#2e6be6';
-    return `
-    <text x="${PAD}" y="${cy + 26}" font-size="26" font-weight="700" fill="${timeColor}">${esc(e.time || '--')}</text>
-    <text x="${PAD + 96}" y="${cy + 25}" font-size="19" fill="#98a0ab">${esc((e.league || '').slice(0, 8))}</text>
-    <text x="${W - PAD}" y="${cy + 25}" font-size="19" fill="#98a0ab" text-anchor="end">${esc(ch)}</text>
-    <text x="${PAD}" y="${cy + 60}" font-size="28" font-weight="600" fill="#22252a">${esc(teams)}</text>`;
-  }).join('\n');
+    return `<tr>
+          <td style="padding:10px 0 2px;">
+            <table width="100%" cellpadding="0" cellspacing="0"><tr>
+              <td style="font-size:17px;font-weight:700;color:${timeColor};white-space:nowrap;">${esc(e.time || '--')}<span style="font-size:13px;font-weight:400;color:#98a0ab;margin-left:10px;">${esc((e.league || '').slice(0, 8))}</span></td>
+              <td align="right" style="font-size:13px;color:#98a0ab;">${esc(ch)}</td>
+            </tr></table>
+          </td>
+        </tr>
+        <tr>
+          <td style="font-size:19px;font-weight:600;color:#22252a;padding:2px 0 10px;">${esc(teams)}</td>
+        </tr>`;
+  }).join('\n        ');
 
   const more = sorted.length > shown.length
-    ? `\n    <text x="${W / 2}" y="${headH + shown.length * rowH + 36}" font-size="19" fill="#98a0ab" text-anchor="middle">当天共 ${sorted.length} 场，打开页面查看全部</text>`
+    ? `<tr><td style="padding:4px 0 12px;font-size:13px;color:#98a0ab;text-align:center;">当天共 ${sorted.length} 场，打开页面查看全部</td></tr>`
     : '';
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <rect width="${W}" height="${H}" fill="#eef1f5"/>
-  <rect x="20" y="20" width="${W - 40}" height="${H - 40}" rx="20" fill="#ffffff"/>
-  <text x="${PAD}" y="86" font-size="22" font-weight="600" fill="#2e6be6">SPORTS · ${title}</text>
-  <text x="${PAD}" y="140" font-size="42" font-weight="800" fill="#22252a">${dateText}</text>
-  <line x1="${PAD}" y1="${headH - 24}" x2="${W - PAD}" y2="${headH - 24}" stroke="#eceff3" stroke-width="2"/>${rows}${more}
-  <text x="${W / 2}" y="${H - 40}" font-size="18" fill="#b6bcc4" text-anchor="middle">数据来源 zhibo8.com · 每天 ${new Date().toLocaleString('zh-CN', { hour12: false })} 自动更新</text>
-</svg>`;
-  fs.writeFileSync(path.join(DATA_DIR, 'card.svg'), svg, 'utf8');
-  console.log(`[card] 已生成赛事卡片 data/card.svg（${day}，展示 ${shown.length}/${dayEvents.length} 场）`);
+  const html = `<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title} ${dateText}</title>
+</head>
+<body style="margin:0;padding:24px 12px;background:#eef1f5;font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;">
+      <tr>
+        <td style="padding:32px 36px 0;">
+          <div style="font-size:15px;font-weight:600;color:#2e6be6;">SPORTS · ${title}</div>
+          <div style="font-size:30px;font-weight:800;color:#22252a;margin-top:6px;">${dateText}</div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:18px 36px 0;"><div style="height:1px;background:#eceff3;font-size:0;line-height:0;">&nbsp;</div></td>
+      </tr>
+      <tr>
+        <td style="padding:8px 36px 4px;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+        ${rows}
+        ${more}
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:14px 36px 28px;">
+          <div style="font-size:12px;color:#b6bcc4;text-align:center;">数据来源 zhibo8.com · 每天 ${new Date().toLocaleString('zh-CN', { hour12: false })} 自动更新</div>
+        </td>
+      </tr>
+    </table>
+  </td></tr></table>
+</body>
+</html>`;
+  fs.writeFileSync(path.join(DATA_DIR, 'card.html'), html, 'utf8');
+  console.log(`[card] 已生成网页版赛事卡片 data/card.html（${day}，展示 ${shown.length}/${dayEvents.length} 场）`);
 }
 
 async function crawl() {
