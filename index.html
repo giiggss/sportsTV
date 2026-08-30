@@ -147,6 +147,7 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .erow .teams .vs { color: var(--text-3); margin: 0 6px; font-size: 12px; font-weight: 400; }
+  .erow .teams .score { color: var(--accent); margin: 0 6px; font-size: 15px; font-weight: 700; }
   .erow .right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .erow .status { font-size: 12px; color: var(--ok); }
   .erow .status.live { color: var(--live); }
@@ -397,8 +398,9 @@ function renderList() {
     }
     const div = document.createElement('div');
     div.className = 'erow';
+    const mid = e.score ? `<span class="score">${e.score.replace('-', ' - ')}</span>` : '<span class="vs">vs</span>';
     const teams = e.home && e.away
-      ? `${e.home}<span class="vs">vs</span>${e.away}`
+      ? `${e.home}${mid}${e.away}`
       : (e.league || '赛事');
     const status = e.status ? `<span class="status ${/进行中|上半|下半|第\S+节|中场/.test(e.status) ? 'live' : ''}">${e.status}</span>` : '';
     div.innerHTML = `

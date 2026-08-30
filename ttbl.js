@@ -5,8 +5,8 @@
 //   进入关注列表：页签过滤 / 每日卡片 / 赛前提醒(云端 cron) / 局分变化提醒(本地轮询)
 const BASE = 'https://ttbl.de';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
-// 抓取范围：当前轮前 1 轮 ~ 后 8 轮（每轮约一周）， crawl 时滑动前进
-const BEFORE = 1;
+// 抓取范围：当前轮前 4 轮 ~ 后 8 轮（每轮约一周），保留约一个月历史比分，crawl 时滑动前进
+const BEFORE = 4;
 const AFTER = 8;
 
 // 球队名德译中（2026/27 赛季 12 支），未映射的球队保留德文名
@@ -64,6 +64,11 @@ function toItem(m, teamMap) {
   const away = teamMap[m.awayTeamId] || m.awayTeamId;
   const { date, time } = bj(m.timeStamp || 0);
   const isDuss = home === '杜塞尔多夫' || away === '杜塞尔多夫';
+  // 比分只保留关注球队(杜塞尔多夫/樊振东)的完场比赛，其余比赛不存比分
+  const finished = /finish|beend/i.test(m.matchState || '');
+  const score = isDuss && finished && m.homeGames != null
+    ? `${m.homeGames}-${m.awayGames}`
+    : undefined;
   return {
     id: 'ttbl-' + m.id,
     date,
@@ -77,6 +82,7 @@ function toItem(m, teamMap) {
     type: 'other',
     label: `乒乓球,德甲,德乒甲,${home},${away}${isDuss ? ',樊振东' : ''}`,
     url: m.livestreamUrl || BASE,
+    score,
     // 局分轮询定位用：官方比赛 id + 所在轮次
     ttblId: m.id,
     gdIndex: m.__gdIndex || null,
