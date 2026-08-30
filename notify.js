@@ -1,11 +1,13 @@
 // Server酱微信推送（仅云端 GitHub Actions 使用，本地不推送）
 // 用法:
 //   node notify.js card       推送当日关注球队赛事卡片
-//   node notify.js reminders  检查并发送赛前提醒（1小时前 / 30分钟前），带状态去重
+//   node notify.js reminders  检查并发送赛前提醒（开赛前30分/前10分/开赛时），带状态去重
+//   node notify.js score      检查关注球队进行中比赛的比分变化，变化即推送
 // 可加 --dry 只打印不发送；需环境变量 SERVERCHAN_KEY（Server酱 SendKey）
 const fs = require('fs');
 const path = require('path');
 const { pickFollowedDay } = require('./crawler');
+const { fetchLiveScores, matchFollowedLive, loadState: loadScoreState, saveState: saveScoreState } = require('./score');
 
 const DATA_DIR = path.join(__dirname, 'data');
 const EVENTS_FILE = path.join(DATA_DIR, 'events.json');
@@ -215,10 +217,53 @@ async function runReminders(opts = {}) {
   return { sent: messages.length };
 }
 
+// 检查关注球队进行中比赛的比分变化，变化即推送（比分状态独立存 data/score-state.json）
+async function runScoreUpdates(opts = {}) {
+  const key = opts.key || KEY;
+  const data = loadData();
+  if (!data) return { sent: 0 };
+  const scoreList = await fetchLiveScores();
+  const live = matchFollowedLive(scoreList, data.events);
+  const state = loadScoreState();
+  const liveIds = new Set(live.map(m => m.id));
+  const messages = [];
+
+  for (const m of live) {
+    const prev = state[m.id];
+    if (prev && (prev.home !== m.homeScore || prev.away !== m.awayScore)) {
+      messages.push({
+        title: `⚽${m.home} ${m.homeScore}-${m.awayScore} ${m.away}`.slice(0, 32),
+        desp: `**比分变化**\n\n${m.home} **${m.homeScore}-${m.awayScore}** ${m.away}\n\n${m.period}${m.url ? `\n\n[观看直播](${m.url})` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+      });
+    }
+    state[m.id] = { home: m.homeScore, away: m.awayScore };
+  }
+  // 清理已结束比赛的状态（不在当前进行中列表的 id）
+  for (const id of Object.keys(state)) {
+    if (!liveIds.has(id)) delete state[id];
+  }
+
+  if (DRY && !opts.force) {
+    console.log(`[dry] 进行中关注比赛 ${live.length} 场，比分变化 ${messages.length} 条`);
+    for (const m of live) console.log(`[dry] ${m.home} ${m.homeScore}-${m.awayScore} ${m.away} (${m.period})`);
+    for (const m of messages) console.log(`[dry] 推送: ${m.title}`);
+    saveScoreState(state);
+    return { sent: 0 };
+  }
+  if (!key) throw new Error('未配置 SERVERCHAN_KEY');
+  for (const m of messages) {
+    await sendServerChan(key, m.title, m.desp);
+    console.log(`[notify] 比分变化: ${m.title}`);
+  }
+  saveScoreState(state);
+  return { sent: messages.length };
+}
+
 async function main() {
   if (MODE === 'card') return runCard();
   if (MODE === 'reminders') return runReminders();
-  throw new Error(`未知模式: ${MODE}（可用: card / reminders）`);
+  if (MODE === 'score') return runScoreUpdates();
+  throw new Error(`未知模式: ${MODE}（可用: card / reminders / score）`);
 }
 
 // 仅直接运行时才执行主流程（require 时不执行，便于测试）
@@ -229,4 +274,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { sendServerChan, sendUrl, buildCardMessage, findDueReminders, beijingNow, runCard, runReminders };
+module.exports = { sendServerChan, sendUrl, buildCardMessage, findDueReminders, beijingNow, runCard, runReminders, runScoreUpdates };

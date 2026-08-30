@@ -6,13 +6,15 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { crawl, loadData, isStale, SUB_KEYS, TEAM_KEYS } = require('./crawler');
-const { runReminders } = require('./notify');
+const { runReminders, runScoreUpdates } = require('./notify');
 
 const PORT = process.env.PORT || 3000;
 
-// ---------------- 本地 Server酱 赛前提醒 ----------------
+// ---------------- 本地 Server酱 推送 ----------------
 // 读取本地 config.json（gitignore，不入库）: { "serverchanKey": "sctp..." }
-// 电脑开着且本服务运行时，每分钟检查一次：开赛前30分钟/前10分钟/开赛时推送微信提醒
+// 电脑开着且本服务运行时:
+//   - 每分钟检查赛前提醒（开赛前30分/前10分/开赛时）
+//   - 每分钟检查关注球队进行中比赛的比分变化，变化即推送
 function loadConfig() {
   try {
     return JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
@@ -29,7 +31,19 @@ function scheduleReminders() {
   }
   console.log('[notify] 本地赛前提醒已启用');
   setInterval(() => {
-    runReminders({ key }).catch(e => console.error('[notify] 提醒失败:', e.message));
+    runReminders({ key }).catch(e => console.error('[notify] 赛前提醒失败:', e.message));
+  }, 60 * 1000).unref();
+}
+
+function scheduleScoreUpdates() {
+  const key = loadConfig().serverchanKey;
+  if (!key) {
+    console.log('[notify] config.json 未配置 serverchanKey，比分变化提醒未启用');
+    return;
+  }
+  console.log('[notify] 本地比分变化提醒已启用');
+  setInterval(() => {
+    runScoreUpdates({ key }).catch(e => console.error('[notify] 比分检查失败:', e.message));
   }, 60 * 1000).unref();
 }
 
@@ -132,6 +146,7 @@ const server = http.createServer(async (req, res) => {
   }
   scheduleDaily();
   scheduleReminders();
+  scheduleScoreUpdates();
 })();
 
 server.listen(PORT, () => {
