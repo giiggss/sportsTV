@@ -43,7 +43,8 @@ function matchFollowedLive(scoreList, events) {
       // 至少主队或客队能匹配上（单边即可，防止换边）
       return homeMatch || awayMatch;
     });
-    if (hit && hit.state === '2') {
+    // 进行中(state=2)和已完赛(state=3)都要——完赛用于推送完场提醒
+    if (hit && (hit.state === '2' || hit.state === '3')) {
       live.push({
         id: hit.id,
         home: hit.home_team,
@@ -51,6 +52,7 @@ function matchFollowedLive(scoreList, events) {
         homeScore: String(hit.home_score),
         awayScore: String(hit.visit_score),
         period: hit.period_cn,
+        state: hit.state,
         url: hit.url ? LIVE_BASE + hit.url : '',
       });
     }

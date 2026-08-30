@@ -217,7 +217,7 @@ async function runReminders(opts = {}) {
   return { sent: messages.length };
 }
 
-// 关注球队是否有比赛可能正在进行中（开赛前后共150分钟窗口），用于预判是否需要拉取比分接口
+// 关注球队是否有比赛可能正在进行中（开赛前后共240分钟窗口，覆盖加时赛），用于预判是否需要拉取比分接口
 // 用开赛时间戳比较，正确处理跨午夜的比赛（如23:30开赛、凌晨仍在进行）
 function hasFollowedMaybeLive(events) {
   const now = Date.now();
@@ -231,7 +231,7 @@ function hasFollowedMaybeLive(events) {
     const kickoff = Date.parse(`${e.date}T${hh}:${mm}:00+08:00`);
     if (Number.isNaN(kickoff)) continue;
     const diffMin = (now - kickoff) / 60000;
-    if (diffMin >= -5 && diffMin <= 150) return true;
+    if (diffMin >= -5 && diffMin <= 240) return true;
   }
   return false;
 }
@@ -251,13 +251,35 @@ async function runScoreUpdates(opts = {}) {
 
   for (const m of live) {
     const prev = state[m.id];
-    if (prev && (prev.home !== m.homeScore || prev.away !== m.awayScore)) {
+    const isHT = m.state === '2' && /中场/.test(m.period || '');
+    const isFT = m.state === '3' || /完赛|完场/.test(m.period || '');
+    // 比分变化（完场后不再重复推送比分）
+    if (prev && !isFT && (prev.home !== m.homeScore || prev.away !== m.awayScore)) {
       messages.push({
         title: `⚽ ${m.home} ${m.homeScore}-${m.awayScore} ${m.away}`.slice(0, 50),
         desp: `**比分变化**\n\n${m.home} **${m.homeScore}-${m.awayScore}** ${m.away}\n\n${m.period}${m.url ? `\n\n[观看直播](${m.url})` : ''}\n\n[打开今日卡片](${CARD_URL})`,
       });
     }
-    state[m.id] = { home: m.homeScore, away: m.awayScore };
+    // 半场（中场休息时推送一次）
+    if (prev && !prev.ht && isHT) {
+      messages.push({
+        title: `📋 半场 ${m.home} ${m.homeScore}-${m.awayScore} ${m.away}`.slice(0, 50),
+        desp: `**半场比分**\n\n${m.home} **${m.homeScore}-${m.awayScore}** ${m.away}\n\n中场休息${m.url ? `\n\n[观看直播](${m.url})` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+      });
+    }
+    // 完赛（全场比赛结束时推送最终比分）
+    if (prev && !prev.ft && isFT) {
+      messages.push({
+        title: `🏁 完赛 ${m.home} ${m.homeScore}-${m.awayScore} ${m.away}`.slice(0, 50),
+        desp: `**全场比赛结束**\n\n${m.home} **${m.homeScore}-${m.awayScore}** ${m.away}\n\n最终比分${m.url ? `\n\n[观看直播](${m.url})` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+      });
+    }
+    state[m.id] = {
+      home: m.homeScore,
+      away: m.awayScore,
+      ht: Boolean((prev && prev.ht) || isHT),
+      ft: Boolean((prev && prev.ft) || isFT),
+    };
   }
   // 清理已结束比赛的状态（不在当前进行中列表的 id）
   for (const id of Object.keys(state)) {
