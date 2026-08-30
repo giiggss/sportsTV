@@ -1,40 +1,8 @@
 {
-  "crawledAt": "2026-08-30T21:20:29.723Z",
+  "crawledAt": "2026-08-30T21:38:37.449Z",
   "source": "https://m.zhibo8.com/",
-  "count": 410,
+  "count": 409,
   "events": [
-    {
-      "date": "2026-08-31",
-      "time": "02:00",
-      "league": "斯诺克英国公开赛",
-      "home": "",
-      "away": "",
-      "channel": "",
-      "status": "",
-      "important": true,
-      "type": "other",
-      "label": "综合,斯诺克,其他",
-      "url": "https://www.zhibo8.cc/news/web/other/2024-04-28/662dc5ad1cb63native.htm",
-      "category": "other",
-      "sub": "",
-      "teams": []
-    },
-    {
-      "date": "2026-08-31",
-      "time": "03:30",
-      "league": "西甲第3轮",
-      "home": "塞尔塔",
-      "away": "毕尔巴鄂竞技",
-      "channel": "咪咕",
-      "status": "进行中",
-      "important": true,
-      "type": "football",
-      "label": "西甲,塞尔塔,毕尔巴鄂竞技,足球,西甲第3轮",
-      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2075424v.htm",
-      "category": "football",
-      "sub": "xijia",
-      "teams": []
-    },
     {
       "date": "2026-08-31",
       "time": "05:00",
@@ -223,6 +191,22 @@
       "type": "other",
       "label": "综合,斯诺克,丁俊晖,其他,卡扎科夫,斯诺克英国公开赛,斯诺克英国公开赛第1轮,推荐属性,NBA,篮球",
       "url": "https://www.zhibo8.cc/zhibo/other/2026/match2278041v.htm",
+      "category": "other",
+      "sub": "",
+      "teams": []
+    },
+    {
+      "date": "2026-08-31",
+      "time": "20:00",
+      "league": "斯诺克英国公开赛",
+      "home": "",
+      "away": "",
+      "channel": "",
+      "status": "",
+      "important": true,
+      "type": "other",
+      "label": "综合,斯诺克,其他",
+      "url": "https://www.zhibo8.cc/news/web/other/2024-04-28/662dc5ad1cb63native.htm",
       "category": "other",
       "sub": "",
       "teams": []
@@ -6663,7 +6647,7 @@
       "url": "https://ttbl.de",
       "score": "3-1",
       "ttblId": "f46ed1c9-5c9e-40b6-90f3-a2e25c95f9e4",
-      "ttblPath": "pokal/gameday/2026-2027/1/c4ae8610-c555-4977-9400-52c23fff0b6e",
+      "ttblPath": "pokal/gameday/2026-2027/1/f46ed1c9-5c9e-40b6-90f3-a2e25c95f9e4",
       "category": "pingpong",
       "sub": "",
       "teams": [
@@ -6684,7 +6668,7 @@
       "label": "乒乓球,德国杯,德杯,SV Union Velbert II,ASC Grünwettersbach II",
       "url": "https://ttbl.de",
       "ttblId": "c4ae8610-c555-4977-9400-52c23fff0b6e",
-      "ttblPath": "pokal/gameday/2026-2027/1/c4ae8610-c555-4977-9400-52c23fff0b6e",
+      "ttblPath": "pokal/gameday/2026-2027/1/f46ed1c9-5c9e-40b6-90f3-a2e25c95f9e4",
       "category": "pingpong",
       "sub": "",
       "teams": []
@@ -6703,7 +6687,7 @@
       "label": "乒乓球,德国杯,德杯,富尔达,SV Union Velbert",
       "url": "https://ttbl.de",
       "ttblId": "799e3d88-7d03-4b1d-9ac4-f0b755446681",
-      "ttblPath": "pokal/gameday/2026-2027/1/c4ae8610-c555-4977-9400-52c23fff0b6e",
+      "ttblPath": "pokal/gameday/2026-2027/1/f46ed1c9-5c9e-40b6-90f3-a2e25c95f9e4",
       "category": "pingpong",
       "sub": "",
       "teams": []
@@ -6722,7 +6706,7 @@
       "label": "乒乓球,德国杯,德杯,贝格诺伊施塔特,不莱梅",
       "url": "https://ttbl.de",
       "ttblId": "14811890-27d7-47b2-bb24-ff57461dd46e",
-      "ttblPath": "pokal/gameday/2026-2027/1/c4ae8610-c555-4977-9400-52c23fff0b6e",
+      "ttblPath": "pokal/gameday/2026-2027/1/f46ed1c9-5c9e-40b6-90f3-a2e25c95f9e4",
       "category": "pingpong",
       "sub": "",
       "teams": []
@@ -6741,7 +6725,7 @@
       "label": "乒乓球,德国杯,德杯,格伦维特斯巴赫,米尔豪森",
       "url": "https://ttbl.de",
       "ttblId": "4ca1c5c9-5a64-473a-a43c-8b03217a6d35",
-      "ttblPath": "pokal/gameday/2026-2027/1/c4ae8610-c555-4977-9400-52c23fff0b6e",
+      "ttblPath": "pokal/gameday/2026-2027/1/f46ed1c9-5c9e-40b6-90f3-a2e25c95f9e4",
       "category": "pingpong",
       "sub": "",
       "teams": []
@@ -6760,7 +6744,7 @@
       "label": "乒乓球,德国杯,德杯,巴特洪堡,巴特柯尼希霍芬",
       "url": "https://ttbl.de",
       "ttblId": "96fc454b-81e0-4258-986e-3eb644b37579",
-      "ttblPath": "pokal/gameday/2026-2027/1/c4ae8610-c555-4977-9400-52c23fff0b6e",
+      "ttblPath": "pokal/gameday/2026-2027/1/f46ed1c9-5c9e-40b6-90f3-a2e25c95f9e4",
       "category": "pingpong",
       "sub": "",
       "teams": []
@@ -6779,7 +6763,7 @@
       "label": "乒乓球,德国杯,德杯,TTC immoXone Bietigheim-Bissingen,萨尔布吕肯",
       "url": "https://ttbl.de",
       "ttblId": "a5602587-1d11-41eb-b7d5-fbcfe10005cb",
-      "ttblPath": "pokal/gameday/2026-2027/1/c4ae8610-c555-4977-9400-52c23fff0b6e",
+      "ttblPath": "pokal/gameday/2026-2027/1/f46ed1c9-5c9e-40b6-90f3-a2e25c95f9e4",
       "category": "pingpong",
       "sub": "",
       "teams": []
@@ -6798,7 +6782,7 @@
       "label": "乒乓球,德国杯,德杯,多特蒙德,格伦茨劳",
       "url": "https://ttbl.de",
       "ttblId": "aa6a7483-b93a-4985-8898-ce4ede1ff8bc",
-      "ttblPath": "pokal/gameday/2026-2027/1/c4ae8610-c555-4977-9400-52c23fff0b6e",
+      "ttblPath": "pokal/gameday/2026-2027/1/f46ed1c9-5c9e-40b6-90f3-a2e25c95f9e4",
       "category": "pingpong",
       "sub": "",
       "teams": []
