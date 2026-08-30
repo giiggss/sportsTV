@@ -6,8 +6,32 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { crawl, loadData, isStale, SUB_KEYS, TEAM_KEYS } = require('./crawler');
+const { runReminders } = require('./notify');
 
 const PORT = process.env.PORT || 3000;
+
+// ---------------- 本地 Server酱 赛前提醒 ----------------
+// 读取本地 config.json（gitignore，不入库）: { "serverchanKey": "sctp..." }
+// 电脑开着且本服务运行时，每分钟检查一次：开赛前30分钟/前10分钟/开赛时推送微信提醒
+function loadConfig() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function scheduleReminders() {
+  const key = loadConfig().serverchanKey;
+  if (!key) {
+    console.log('[notify] config.json 未配置 serverchanKey，本地提醒未启用（云端照常）');
+    return;
+  }
+  console.log('[notify] 本地赛前提醒已启用');
+  setInterval(() => {
+    runReminders({ key }).catch(e => console.error('[notify] 提醒失败:', e.message));
+  }, 60 * 1000).unref();
+}
 
 // ---------------- 每日定时 ----------------
 function scheduleDaily() {
@@ -107,6 +131,7 @@ const server = http.createServer(async (req, res) => {
     console.log(`[data] 使用本地缓存（爬取于 ${new Date(data.crawledAt).toLocaleString('zh-CN')}）`);
   }
   scheduleDaily();
+  scheduleReminders();
 })();
 
 server.listen(PORT, () => {

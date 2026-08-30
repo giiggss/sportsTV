@@ -1,6 +1,9 @@
 # 运行时爬取的数据缓存
 data/
 
+# 本地私密配置（Server酱 key 等）
+config.json
+
 # 日志与临时文件
 *.log
 node_modules/

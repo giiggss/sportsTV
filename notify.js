@@ -158,7 +158,11 @@ function findDueReminders(data, state) {
 
 // ---------------- 主流程 ----------------
 function loadData() {
-  return JSON.parse(fs.readFileSync(EVENTS_FILE, 'utf8'));
+  try {
+    return JSON.parse(fs.readFileSync(EVENTS_FILE, 'utf8'));
+  } catch {
+    return null;
+  }
 }
 
 function loadState() {
@@ -174,38 +178,46 @@ function saveState(state) {
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
 }
 
-async function main() {
+// 推送当日卡片。opts.key 缺省取环境变量 SERVERCHAN_KEY
+async function runCard(opts = {}) {
+  const key = opts.key || KEY;
   const data = loadData();
-
-  if (MODE === 'card') {
-    const { title, desp } = buildCardMessage(data);
-    if (DRY) {
-      console.log(`[dry] title: ${title}\n${desp}`);
-      return;
-    }
-    if (!KEY) throw new Error('未配置 SERVERCHAN_KEY 环境变量');
-    await sendServerChan(KEY, title, desp);
-    console.log(`[push] 卡片已推送: ${title}`);
-    return;
+  if (!data) throw new Error('暂无赛程数据');
+  const { title, desp } = buildCardMessage(data);
+  if (DRY && !opts.force) {
+    console.log(`[dry] title: ${title}\n${desp}`);
+    return { sent: 0 };
   }
+  if (!key) throw new Error('未配置 SERVERCHAN_KEY');
+  await sendServerChan(key, title, desp);
+  console.log(`[notify] 卡片已推送: ${title}`);
+  return { sent: 1 };
+}
 
-  if (MODE === 'reminders') {
-    const { messages, state, changed } = findDueReminders(data, loadState());
-    if (DRY) {
-      console.log(`[dry] 北京时间 ${beijingNow().date} ${fmtTime(beijingNow().minutes)}，到期提醒 ${messages.length} 条`);
-      for (const m of messages) console.log(`[dry] title: ${m.title}\n${m.desp}\n`);
-      return;
-    }
-    if (!KEY) throw new Error('未配置 SERVERCHAN_KEY 环境变量');
-    for (const m of messages) {
-      await sendServerChan(KEY, m.title, m.desp);
-      console.log(`[push] 已发送: ${m.title}`);
-    }
-    saveState(state); // 无论是否发送都落盘，供 workflow 提交（含按天清理）
-    console.log(changed ? '[state] 提醒状态有更新' : '[state] 无新提醒');
-    return;
+// 检查并发送到期提醒（含状态去重落盘）。本地与云端共用同一状态文件
+async function runReminders(opts = {}) {
+  const key = opts.key || KEY;
+  const data = loadData();
+  if (!data) return { sent: 0 };
+  const { messages, state } = findDueReminders(data, loadState());
+  if (DRY && !opts.force) {
+    const bj = beijingNow();
+    console.log(`[dry] 北京时间 ${bj.date} ${fmtTime(bj.minutes)}，到期提醒 ${messages.length} 条`);
+    for (const m of messages) console.log(`[dry] title: ${m.title}\n${m.desp}\n`);
+    return { sent: 0 };
   }
+  if (!key) throw new Error('未配置 SERVERCHAN_KEY');
+  for (const m of messages) {
+    await sendServerChan(key, m.title, m.desp);
+    console.log(`[notify] 已发送: ${m.title}`);
+  }
+  saveState(state);
+  return { sent: messages.length };
+}
 
+async function main() {
+  if (MODE === 'card') return runCard();
+  if (MODE === 'reminders') return runReminders();
   throw new Error(`未知模式: ${MODE}（可用: card / reminders）`);
 }
 
@@ -217,4 +229,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { sendServerChan, sendUrl, buildCardMessage, findDueReminders, beijingNow };
+module.exports = { sendServerChan, sendUrl, buildCardMessage, findDueReminders, beijingNow, runCard, runReminders };
