@@ -165,6 +165,22 @@
 
   footer { margin-top: 32px; font-size: 12px; color: var(--footer); text-align: center; }
 
+  /* ---------- 今日卡片弹层 ---------- */
+  .overlay {
+    display: none; position: fixed; inset: 0; z-index: 99;
+    background: rgba(0, 0, 0, .75);
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .overlay.open { display: flex; }
+  .overlay img { max-width: min(92vw, 480px); max-height: 80vh; border-radius: 14px; background: #eef1f5; }
+  .overlay .overlay-tip { margin-top: 12px; font-size: 13px; color: #c9ccd1; }
+  .overlay-close {
+    position: absolute; top: 14px; right: 22px;
+    font-size: 32px; line-height: 1; color: #fff;
+    background: transparent; border: none; cursor: pointer;
+  }
+
   /* ---------- 移动端 ---------- */
   @media (max-width: 640px) {
     .container { padding: 20px 14px 48px; }
@@ -194,6 +210,9 @@
       <div class="meta"><span id="meta">加载中…</span></div>
     </div>
     <div class="top-actions">
+      <button id="cardBtn" class="icon-btn" title="今日赛事卡片">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 20V9"/></svg>
+      </button>
       <button id="themeToggle" class="icon-btn" title="切换深色模式"></button>
       <button id="refresh" class="icon-btn" title="重新抓取数据">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
@@ -214,6 +233,13 @@
   <div class="list" id="list"><div class="empty">加载中…</div></div>
 
   <footer>数据来源：直播吧 zhibo8.com · 仅供个人学习参考</footer>
+</div>
+
+<!-- 今日赛事卡片弹层 -->
+<div id="cardOverlay" class="overlay">
+  <button id="cardClose" class="overlay-close" title="关闭">&times;</button>
+  <img id="cardImg" alt="今日赛事卡片">
+  <div class="overlay-tip">长按或右键图片可保存 / 分享 · 点击空白处关闭</div>
 </div>
 
 <script>
@@ -466,6 +492,23 @@ themeBtn.onclick = () => {
   syncThemeBtn();
 };
 syncThemeBtn();
+
+// ---------- 今日赛事卡片 ----------
+const cardOverlay = document.getElementById('cardOverlay');
+const cardImg = document.getElementById('cardImg');
+document.getElementById('cardBtn').onclick = () => {
+  cardImg.src = 'data/card.svg?v=' + Date.now(); // 加时间戳避免缓存拿到旧卡片
+  cardOverlay.classList.add('open');
+};
+function closeCard() { cardOverlay.classList.remove('open'); }
+// 点空白处/提示文字/×关闭；点图片本身不关（方便长按保存）
+cardOverlay.onclick = (e) => {
+  if (e.target !== cardImg) closeCard();
+};
+document.getElementById('cardClose').onclick = closeCard;
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeCard();
+});
 
 if (IS_STATIC) {
   // 静态部署下数据由 GitHub Actions 每天定时更新，隐藏手动抓取按钮
