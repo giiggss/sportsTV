@@ -1,0 +1,39 @@
+name: 每日10点推送卡片
+on:
+  schedule:
+    - cron: '0 2 * * *'   # 北京时间 10:00（GitHub Actions 定时可能有几分钟延迟）
+  workflow_dispatch: {}    # 支持手动触发测试
+
+permissions:
+  contents: write
+
+jobs:
+  push-card:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 抓取最新赛程
+        run: node crawler.js
+
+      - name: 推送卡片到 Server酱
+        env:
+          SERVERCHAN_KEY: ${{ secrets.SERVERCHAN_KEY }}
+        run: node notify.js card
+
+      - name: 提交数据
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f data/events.json data/card.html
+          if git diff --cached --quiet; then
+            echo "数据无变化，跳过提交"
+          else
+            git commit -m "chore: 更新每日赛程数据与赛事卡片"
+            git pull --rebase origin main
+            git push
+          fi

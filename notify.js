@@ -1,0 +1,195 @@
+// Server酱微信推送（仅云端 GitHub Actions 使用，本地不推送）
+// 用法:
+//   node notify.js card       推送当日关注球队赛事卡片
+//   node notify.js reminders  检查并发送赛前提醒（1小时前 / 30分钟前），带状态去重
+// 可加 --dry 只打印不发送；需环境变量 SERVERCHAN_KEY（Server酱 SendKey）
+const fs = require('fs');
+const path = require('path');
+const { pickFollowedDay } = require('./crawler');
+
+const DATA_DIR = path.join(__dirname, 'data');
+const EVENTS_FILE = path.join(DATA_DIR, 'events.json');
+const STATE_FILE = path.join(DATA_DIR, 'notify-state.json');
+const CARD_URL = 'https://giiggss.github.io/sportsTV/data/card.html';
+const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
+
+const DRY = process.argv.includes('--dry');
+const MODE = process.argv[2] || 'card';
+const KEY = process.env.SERVERCHAN_KEY;
+
+// ---------------- 工具 ----------------
+// 当前北京时间（Actions 服务器是 UTC，统一换算）
+function beijingNow() {
+  const d = new Date(Date.now() + 8 * 3600 * 1000);
+  return {
+    date: d.toISOString().slice(0, 10),
+    minutes: d.getUTCHours() * 60 + d.getUTCMinutes(),
+  };
+}
+
+function fmtTime(mins) {
+  return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+}
+
+function parseTime(t) {
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(t || '').trim());
+  return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : null;
+}
+
+function weekOf(dateStr) {
+  return '周' + WEEK[new Date(dateStr + 'T00:00:00Z').getUTCDay()];
+}
+
+function escMd(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function matchLabel(e) {
+  return e.home && e.away ? `${e.home} vs ${e.away}` : (e.league || '赛事');
+}
+
+function channelOf(e) {
+  const c = (e.channel || '').split(/\s+/).slice(0, 2).join(' ');
+  return c.length > 9 ? c.slice(0, 8) + '…' : c;
+}
+
+// ---------------- Server酱 ----------------
+async function sendServerChan(key, title, desp) {
+  const res = await fetch(`https://sctapi.ftqq.com/${key}.send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ title, desp }),
+  });
+  const j = await res.json();
+  if (j.code !== 0) throw new Error(j.message || ('code ' + j.code));
+  return j;
+}
+
+// ---------------- 每日卡片推送 ----------------
+function buildCardMessage(data) {
+  const { today, day, dayEvents } = pickFollowedDay(data.events);
+  const isToday = day === today;
+  const dateText = `${day.slice(5, 7)}月${day.slice(8, 10)}日 ${weekOf(day)}`;
+  const sorted = dayEvents.slice().sort((a, b) =>
+    (b.important ? 1 : 0) - (a.important ? 1 : 0) ||
+    (a.time || '').localeCompare(b.time || ''));
+
+  const title = isToday
+    ? `今日赛事 ${dateText}（${dayEvents.length}场）`
+    : `近期赛事 ${dateText}（${dayEvents.length}场）`;
+
+  const lines = sorted.map(e => {
+    const ch = channelOf(e);
+    return `- **${e.time || '--'}** ${escMd(e.league)}｜${escMd(matchLabel(e))}${ch ? `（${escMd(ch)}）` : ''}`;
+  });
+
+  const desp = (dayEvents.length === 0
+    ? '今天关注球队没有比赛。'
+    : `## ${isToday ? '今日' : '近期'}赛事（我的球队）\n\n${lines.join('\n')}`)
+    + `\n\n[打开完整卡片](${CARD_URL})`;
+
+  return { title: title.slice(0, 32), desp };
+}
+
+// ---------------- 赛前提醒 ----------------
+// 返回 {messages, state, changed}
+function findDueReminders(data, state) {
+  const bj = beijingNow();
+  const { followed } = pickFollowedDay(data.events);
+  // 状态按天清理，只保留今天的
+  const sent = new Set((state.sent || []).filter(k => k.startsWith(bj.date)));
+  const messages = [];
+
+  for (const e of followed) {
+    if (e.date !== bj.date) continue;
+    const start = parseTime(e.time);
+    if (start === null) continue;
+    const diff = start - bj.minutes; // 距开赛的分钟数
+    const id = `${e.date} ${e.time} ${e.home}|${e.away}`;
+
+    // 提醒窗口放宽到 ±10 分钟，配合 Actions 每5分钟一次的检查频率；
+    // 状态去重保证每场每种提醒只发一次
+    if (diff >= 50 && diff <= 70 && !sent.has(id + ':h1')) {
+      sent.add(id + ':h1');
+      const ch = channelOf(e);
+      messages.push({
+        title: `⏰约1小时后开赛：${matchLabel(e)}`.slice(0, 32),
+        desp: `**${e.time}** ${escMd(e.league)}\n\n${escMd(matchLabel(e))}${ch ? `\n\n直播：${escMd(ch)}` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+        id,
+      });
+    }
+    if (diff >= 20 && diff <= 40 && !sent.has(id + ':m30')) {
+      sent.add(id + ':m30');
+      const ch = channelOf(e);
+      messages.push({
+        title: `⏰约30分钟后开赛：${matchLabel(e)}`.slice(0, 32),
+        desp: `**${e.time}** ${escMd(e.league)}\n\n${escMd(matchLabel(e))}${ch ? `\n\n直播：${escMd(ch)}` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+        id,
+      });
+    }
+  }
+
+  return {
+    messages,
+    state: { sent: [...sent].sort() },
+    changed: JSON.stringify(state) !== JSON.stringify({ sent: [...sent].sort() }),
+  };
+}
+
+// ---------------- 主流程 ----------------
+function loadData() {
+  return JSON.parse(fs.readFileSync(EVENTS_FILE, 'utf8'));
+}
+
+function loadState() {
+  try {
+    return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+  } catch {
+    return { sent: [] };
+  }
+}
+
+function saveState(state) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
+}
+
+async function main() {
+  const data = loadData();
+
+  if (MODE === 'card') {
+    const { title, desp } = buildCardMessage(data);
+    if (DRY) {
+      console.log(`[dry] title: ${title}\n${desp}`);
+      return;
+    }
+    if (!KEY) throw new Error('未配置 SERVERCHAN_KEY 环境变量');
+    await sendServerChan(KEY, title, desp);
+    console.log(`[push] 卡片已推送: ${title}`);
+    return;
+  }
+
+  if (MODE === 'reminders') {
+    const { messages, state, changed } = findDueReminders(data, loadState());
+    if (DRY) {
+      console.log(`[dry] 北京时间 ${beijingNow().date} ${fmtTime(beijingNow().minutes)}，到期提醒 ${messages.length} 条`);
+      for (const m of messages) console.log(`[dry] title: ${m.title}\n${m.desp}\n`);
+      return;
+    }
+    if (!KEY) throw new Error('未配置 SERVERCHAN_KEY 环境变量');
+    for (const m of messages) {
+      await sendServerChan(KEY, m.title, m.desp);
+      console.log(`[push] 已发送: ${m.title}`);
+    }
+    saveState(state); // 无论是否发送都落盘，供 workflow 提交（含按天清理）
+    console.log(changed ? '[state] 提醒状态有更新' : '[state] 无新提醒');
+    return;
+  }
+
+  throw new Error(`未知模式: ${MODE}（可用: card / reminders）`);
+}
+
+main().catch(e => {
+  console.error('推送失败:', e.message);
+  process.exit(1);
+});

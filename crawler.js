@@ -163,27 +163,35 @@ function esc(s) {
 // 关注的球队（与页签"我的球队"一致），卡片只展示这些队伍的比赛
 const FOLLOW_TEAM_KEYS = ['mancity', 'arsenal', 'manutd', 'chelsea', 'barcelona', 'realmadrid', 'atletico', 'shenhua', 'shanggang'];
 
-// 生成"今日赛事"网页版小卡片（data/card.html）
-// 只展示关注球队的比赛；邮件安全：表格布局 + 全内联样式，可直接全选复制进邮件正文保留排版
-function generateCard(data) {
-  const events = Array.isArray(data.events) ? data.events : [];
-  const followed = events.filter(e => Array.isArray(e.teams) && e.teams.some(t => FOLLOW_TEAM_KEYS.includes(t)));
+// 从全部赛事中选出"关注球队"的赛事，并确定卡片展示的日期（优先今天，否则最近一个有比赛的日期）
+function pickFollowedDay(events) {
+  const followed = (Array.isArray(events) ? events : [])
+    .filter(e => Array.isArray(e.teams) && e.teams.some(t => FOLLOW_TEAM_KEYS.includes(t)));
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 
-  // 优先展示今天；今天关注球队没有比赛则展示最近一个有比赛的日期
-  let day = today, title = '我的球队 · 今日赛事';
-  let dayEvents = followed.filter(e => e.date === day);
+  let day = today;
+  let dayEvents = followed.filter(e => e.date === today);
   if (dayEvents.length === 0) {
     const dates = [...new Set(followed.map(e => e.date))].sort();
     const next = dates.find(ds => ds >= today);
     if (next) {
       day = next;
       dayEvents = followed.filter(e => e.date === day);
-      if (day !== today) title = '我的球队 · 近期赛事';
     }
   }
+  return { today, day, dayEvents, followed };
+}
+
+// 生成"今日赛事"网页版小卡片（data/card.html）
+// 只展示关注球队的比赛；邮件安全：表格布局 + 全内联样式，可直接全选复制进邮件正文保留排版
+function generateCard(data) {
+  const now = new Date();
+  const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
+
+  const { day, dayEvents } = pickFollowedDay(data.events);
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const title = day === today ? '我的球队 · 今日赛事' : '我的球队 · 近期赛事';
 
   // 重要赛事优先，其次按时间排序，最多展示 14 场
   const sorted = dayEvents.slice().sort((a, b) =>
@@ -296,7 +304,7 @@ function isStale(data) {
   return !data.events.some(e => e.date === `${y}-${mo}-${d}`);
 }
 
-module.exports = { crawl, loadData, isStale, DATA_FILE, SUB_KEYS, TEAM_KEYS };
+module.exports = { crawl, loadData, isStale, DATA_FILE, SUB_KEYS, TEAM_KEYS, FOLLOW_TEAM_KEYS, pickFollowedDay };
 
 // 命令行直接运行: node crawler.js
 if (require.main === module) {
