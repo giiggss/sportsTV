@@ -263,13 +263,22 @@ function render() {
   $meta.textContent = `共 ${counts.all} 场 · 更新于 ${fmtDateTime(cache.crawledAt)}`;
 }
 
+// GitHub Pages 静态部署时读取仓库内数据文件（由 Actions 每日更新）；本地运行读本地 API
+const IS_STATIC = location.hostname.endsWith('github.io');
+const DATA_URL = IS_STATIC ? 'data/events.json' : '/api/events';
+
+function localToday() {
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+}
+
 async function load() {
   try {
     // 始终拉取全量数据，分类/日期过滤在前端完成，保证各页签数量统计正确
-    const res = await fetch('/api/events');
+    const res = await fetch(DATA_URL);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    cache = { crawledAt: data.crawledAt, today: data.today, events: data.events };
+    cache = { crawledAt: data.crawledAt, today: localToday(), events: data.events };
     if (dateFilter && !availableDates().includes(dateFilter)) dateFilter = '';
     render();
   } catch (e) {
@@ -277,11 +286,16 @@ async function load() {
   }
 }
 
-document.getElementById('refresh').onclick = async () => {
-  $meta.textContent = '正在抓取最新数据…';
-  await fetch('/api/crawl');
-  load();
-};
+if (IS_STATIC) {
+  // 静态部署下数据由 GitHub Actions 每天定时更新，隐藏手动抓取按钮
+  document.getElementById('refresh').style.display = 'none';
+} else {
+  document.getElementById('refresh').onclick = async () => {
+    $meta.textContent = '正在抓取最新数据…';
+    await fetch('/api/crawl');
+    load();
+  };
+}
 
 load();
 // 每 5 分钟自动刷新页面数据

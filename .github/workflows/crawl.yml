@@ -1,0 +1,35 @@
+name: 每日爬取赛程
+
+on:
+  schedule:
+    - cron: '0 21 * * *' # UTC 21:00 = 北京时间次日 05:00
+    - cron: '0 3 * * *'  # UTC 03:00 = 北京时间 11:00
+  workflow_dispatch: # 支持在 Actions 页面手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 爬取赛程
+        run: node crawler.js
+
+      - name: 提交数据
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/events.json
+          if git diff --cached --quiet; then
+            echo "数据无变化，跳过提交"
+          else
+            git commit -m "chore: 更新每日赛程数据"
+            git push
+          fi
