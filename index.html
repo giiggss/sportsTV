@@ -353,7 +353,11 @@ function renderDates(dates) {
     btn.onclick = () => { dateFilter = val; render(); }; // 重新渲染时页签数量会按所选日期重算
     return btn;
   };
-  if (dates.length > 1) $dates.appendChild(mkChip('', '全部', '所有'));
+  if (dates.length > 1) {
+    const allChip = mkChip('', '全部', '所有');
+    allChip.classList.add('all-chip'); // 固定在最左侧
+    $dates.appendChild(allChip);
+  }
   for (const ds of dates) {
     const { label, week } = dateLabel(ds);
     $dates.appendChild(mkChip(ds, label, week));
