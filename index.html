@@ -386,15 +386,25 @@ function renderDates(dates, matchDates) {
     $datesFixed.appendChild(mkChip(today, '今天', tl.week));
   }
   // 下排：全部日期横向滚动（跳过"今天"，上排固定区已经有了）
+  const chipByDate = {}; // 日期 -> chip 元素，用于"今天"复位定位
   for (const ds of dates) {
     if (ds === today) continue;
     const { label, week } = dateLabel(ds);
-    $dates.appendChild(mkChip(ds, label, week));
+    const chip = mkChip(ds, label, week);
+    chipByDate[ds] = chip;
+    $dates.appendChild(chip);
   }
-  // 滚动到选中项，保证可见
+  // 滚动到选中项，保证可见；若选中的是"今天"（上排固定区，条内无此chip），
+  // 则把日期条滚动到离今天最近的位置（复位效果）
   requestAnimationFrame(() => {
     const active = $dates.querySelector('.active');
-    if (active) active.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    if (active) { active.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); return; }
+    if (dateFilter === today) {
+      // 找今天之后的第一个日期；没有则用最后一个（今天之前最近的）
+      const after = dates.filter(d => d > today);
+      const target = chipByDate[after[0]] || chipByDate[dates.filter(d => d !== today).pop()];
+      if (target) target.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    }
   });
   updateArrows();
 }
