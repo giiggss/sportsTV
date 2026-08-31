@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-31T06:29:30.096Z",
+  "updatedAt": "2026-08-31T06:41:47.803Z",
   "entries": [
     {
       "date": "2026-08-30",
@@ -7,8 +7,8 @@
       "league": "英超第2轮",
       "home": "曼彻斯特联",
       "away": "伊普斯维奇",
-      "homeScore": "1",
-      "awayScore": "1",
+      "homeScore": "5",
+      "awayScore": "2",
       "teams": [
         "manutd"
       ],
