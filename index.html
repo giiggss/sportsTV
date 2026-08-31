@@ -125,6 +125,12 @@
   .date-chip:hover { color: var(--text); }
   .date-chip.active { background: var(--accent-light); border-color: var(--accent-border); color: var(--accent); }
   .date-chip.active .w { color: var(--accent); opacity: .65; }
+  /* “全部”固定在横向滚动条最左侧，不随日期滚动 */
+  .date-chip.all-chip {
+    position: sticky; left: 0; z-index: 2;
+    background: var(--bg-soft); box-shadow: 6px 0 8px -6px rgba(0,0,0,.25);
+  }
+  .date-chip.all-chip.active { background: var(--accent-light); }
 
   /* ---------- 赛事列表（行式极简） ---------- */
   .list { margin-top: 10px; }
