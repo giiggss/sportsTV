@@ -202,8 +202,8 @@ async function fetchWTTItems(daysBack = 14, daysAhead = 30) {
   const filtered = events.filter(e => {
     const name = e.eventName || '';
     if (/youth|feeder/i.test(name)) return false;
-    // 排除常规挑战赛(Contender)，但保留球星挑战赛(Star Contender)
-    if (/contender/i.test(name) && !/star\s*contender/i.test(name)) return false;
+    // 排除所有挑战赛(Contender 含 Star Contender 球星挑战赛)，只留大满贯/冠军赛/总决赛
+    if (/contender/i.test(name)) return false;
     const s = new Date(e.startDateTime);
     const diff = (now - s) / 864e5;
     return diff >= -daysAhead && diff <= daysBack; // 开始日期在 [now-daysBack, now+daysAhead]

@@ -1,7 +1,7 @@
 {
-  "crawledAt": "2026-08-31T06:25:32.647Z",
+  "crawledAt": "2026-08-31T06:29:30.104Z",
   "source": "https://m.zhibo8.com/",
-  "count": 717,
+  "count": 716,
   "events": [
     {
       "date": "2026-08-31",
@@ -13864,28 +13864,6 @@
       "label": "乒乓球,WTT,WTT Champions Macao 2026 Presented by Galaxy Entertainment Group",
       "type": "pingpong",
       "url": "https://www.worldtabletennis.com/matches?eventId=3248",
-      "isEventCard": true,
-      "category": "pingpong",
-      "sub": "",
-      "teams": [],
-      "important": false
-    },
-    {
-      "date": "2026-09-15",
-      "time": "",
-      "league": "WTT球星挑战赛Astana",
-      "home": "WTT球星挑战赛Astana",
-      "away": "至 09-20",
-      "round": "预告",
-      "subEvent": "",
-      "score": null,
-      "status": "未开始",
-      "source": "wtt",
-      "wttEventId": 3254,
-      "wttMatchId": "event-3254",
-      "label": "乒乓球,WTT,WTT Star Contender Astana 2026 - President’s Cup",
-      "type": "pingpong",
-      "url": "https://www.worldtabletennis.com/matches?eventId=3254",
       "isEventCard": true,
       "category": "pingpong",
       "sub": "",
