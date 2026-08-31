@@ -1,6 +1,21 @@
 {
-  "updatedAt": "2026-08-31T20:53:03.461Z",
+  "updatedAt": "2026-08-31T20:59:15.124Z",
   "entries": [
+    {
+      "date": "2026-09-01",
+      "time": "03:00",
+      "league": "",
+      "home": "阿斯顿维拉",
+      "away": "阿森纳",
+      "homeScore": "0",
+      "awayScore": "1",
+      "teams": [
+        "arsenal"
+      ],
+      "source": "zhibo8-score",
+      "sport": "football",
+      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2067656v.htm"
+    },
     {
       "date": "2026-09-01",
       "time": "02:00",
