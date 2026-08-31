@@ -228,14 +228,14 @@ const SEGMENTED = [
 ];
 const TAB_GROUPS = [
   { label: '足球联赛', keys: ['football', 'yingchao', 'zhongchao', 'xijia', 'ouguan'] },
-  { label: '我的球队', keys: ['mancity', 'arsenal', 'manutd', 'chelsea', 'barcelona', 'realmadrid', 'atletico', 'shenhua', 'shanggang'] },
+  { label: '我的球队', keys: ['mancity', 'arsenal', 'manutd', 'chelsea', 'liverpool', 'barcelona', 'realmadrid', 'atletico', 'shenhua', 'shanggang'] },
   { label: '其他赛事', keys: ['pingpong', 'dejia', 'duesseldorf', 'lol'] },
 ];
 const ALL_KEYS = [...SEGMENTED.map(s => s.key), ...TAB_GROUPS.flatMap(g => g.keys)];
 const NAME = {
   recommended: '推荐', all: '全部',
   football: '足球', yingchao: '英超', zhongchao: '中超', xijia: '西甲', ouguan: '欧冠',
-  mancity: '曼城', arsenal: '阿森纳', manutd: '曼联', chelsea: '切尔西',
+  mancity: '曼城', arsenal: '阿森纳', manutd: '曼联', chelsea: '切尔西', liverpool: '利物浦',
   barcelona: '巴塞罗那', realmadrid: '皇马', atletico: '马竞',
   shenhua: '申花', shanggang: '上港',
   pingpong: '乒乓', dejia: '德乒', duesseldorf: '杜塞尔多夫', lol: 'LOL', other: '其他',

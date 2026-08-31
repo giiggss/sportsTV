@@ -30,6 +30,7 @@ const TEAMS = [
   ['阿森纳', 'arsenal'],
   ['曼联', 'manutd'],
   ['切尔西', 'chelsea'],
+  ['利物浦', 'liverpool'],
   ['申花', 'shenhua'],
   ['上港', 'shanggang'], // 兼容旧称
   ['海港', 'shanggang'],
@@ -163,7 +164,7 @@ function esc(s) {
 }
 
 // 关注的球队（与页签"我的球队"一致），卡片只展示这些队伍的比赛
-const FOLLOW_TEAM_KEYS = ['mancity', 'arsenal', 'manutd', 'chelsea', 'barcelona', 'realmadrid', 'atletico', 'shenhua', 'shanggang', 'duesseldorf'];
+const FOLLOW_TEAM_KEYS = ['mancity', 'arsenal', 'manutd', 'chelsea', 'liverpool', 'barcelona', 'realmadrid', 'atletico', 'shenhua', 'shanggang', 'duesseldorf'];
 
 // 从全部赛事中选出"关注球队"的赛事，并确定卡片展示的日期（优先今天，否则最近一个有比赛的日期）
 function pickFollowedDay(events) {
