@@ -472,7 +472,7 @@ function render() {
   const dates = availableDates();
   // 当前页签（不含日期过滤）下有比赛的日期集合 → 日期条高亮标记
   const catEvents = category === 'recommended'
-    ? cache.events.filter(e => e.important) // B4: 与 filtered() 保持一致
+    ? cache.events.filter(isRecommended) // 与 filtered() 保持一致
     : category === 'all'
       ? cache.events
       : cache.events.filter(e => matchCategory(e, category));
@@ -484,7 +484,7 @@ function render() {
   const counts = {};
   for (const key of ALL_KEYS) {
     counts[key] = key === 'recommended'
-      ? base.filter(e => ['football', 'pingpong', 'lol'].includes(e.category) && e.important).length
+      ? base.filter(isRecommended).length
       : key === 'all'
         ? base.length
         : base.filter(e => matchCategory(e, key)).length;
