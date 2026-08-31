@@ -35,7 +35,7 @@ function matchFollowedLive(scoreList, events) {
   const live = [];
   for (const e of followed) {
     const hit = scoreList.find(s => {
-      if (s.sdate !== e.date || s.type !== 'football') return false;
+      if (s.sdate !== e.date || (s.type !== 'football' && s.type !== 'basketball')) return false; // 足球+篮球都认
       const h = s.home_team || '', v = s.visit_team || '';
       // 队名互相包含：应对"切尔西"完全一致或细微差异
       const homeMatch = h.includes(e.home) || e.home.includes(h);

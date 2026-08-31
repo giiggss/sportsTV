@@ -52,12 +52,13 @@ async function collectScoreHistory({ TEAMS, FOLLOW_KEYS }) {
   }
 
   for (const s of feed) {
-    if (s.type !== 'football' && s.type !== 3 && s.type !== '3') continue; // 只处理足球
+    if (s.type !== 'football' && s.type !== 'basketball') continue; // 足球+篮球都收集（中国男篮等）
     if (!(s.state === '3' || s.state === 3 || /完赛|finished/i.test(s.matchState || ''))) continue;
     const home = s.home_team || '';
     const away = s.visit_team || s.away_team || '';
     const hScore = s.home_score == null ? null : String(s.home_score);
-    const aScore = s.away_score == null ? null : String(s.away_score);
+    // 注意：接口客队分数字段是 visit_score（不是 away_score），之前一直取错导致收集不到任何完赛
+    const aScore = s.visit_score == null ? (s.away_score == null ? null : String(s.away_score)) : String(s.visit_score);
     if (hScore == null || aScore == null) continue;
     const teamKeys = [...matchKeysFromName(home, TEAMS), ...matchKeysFromName(away, TEAMS)];
     const followed = followFilter(teamKeys, FOLLOW_KEYS);
@@ -66,13 +67,14 @@ async function collectScoreHistory({ TEAMS, FOLLOW_KEYS }) {
     const entry = {
       date: s.sdate,
       time: s.time || '',
-      league: s.league_name || '',
+      league: s.league_name || (s.type === 'basketball' ? '篮球' : ''),
       home,
       away,
       homeScore: hScore,
       awayScore: aScore,
       teams: [...new Set(teamKeys)],
       source: 'zhibo8-score',
+      sport: s.type, // football / basketball，合成事件时用
       url: s.url ? 'https://www.zhibo8.cc' + s.url : '',
     };
     if (!seen.has(keyOf(entry))) {
@@ -139,7 +141,8 @@ function applyHistoryToEvents(events, hist, { TEAMS, FOLLOW_KEYS }) {
     if (existingKeys.has(k)) continue;
     existingKeys.add(k);
     const teamKeys = [...new Set([...matchKeysFromName(h.home, TEAMS), ...matchKeysFromName(h.away, TEAMS)])];
-    const category = 'football';
+    const isBasketball = h.sport === 'basketball';
+    const category = isBasketball ? 'other' : 'football'; // 篮球合成事件归"其他"，不进足球页签
     // 子分类: 按 league 名判断
     let sub = '';
     if (/英超/.test(h.league)) sub = 'yingchao';
@@ -151,13 +154,13 @@ function applyHistoryToEvents(events, hist, { TEAMS, FOLLOW_KEYS }) {
       id: 'hist-' + k,
       date: h.date,
       time: h.time,
-      league: h.league || '足球',
+      league: h.league || (isBasketball ? '篮球' : '足球'),
       home: h.home,
       away: h.away,
       channel: '',
       status: '已结束',
       important: false,
-      type: 'football',
+      type: isBasketball ? 'basketball' : 'football',
       label: labelParts.filter(Boolean).join(','),
       url: h.url || '',
       score: `${h.homeScore}-${h.awayScore}`,

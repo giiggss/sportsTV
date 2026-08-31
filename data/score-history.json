@@ -1,6 +1,21 @@
 {
-  "updatedAt": "2026-08-31T12:43:20.831Z",
+  "updatedAt": "2026-08-31T13:37:57.902Z",
   "entries": [
+    {
+      "date": "2026-08-31",
+      "time": "19:30",
+      "league": "篮球",
+      "home": "中国男篮",
+      "away": "黎巴嫩男篮",
+      "homeScore": "89",
+      "awayScore": "87",
+      "teams": [
+        "chinamb"
+      ],
+      "source": "zhibo8-score",
+      "sport": "basketball",
+      "url": "https://www.zhibo8.cc/zhibo/nba/2026/match2089413v.htm"
+    },
     {
       "date": "2026-08-30",
       "time": "23:30",

@@ -408,7 +408,7 @@ function isStale(data) {
   return !data.events.some(e => e.date === `${y}-${mo}-${d}`);
 }
 
-module.exports = { crawl, loadData, isStale, DATA_FILE, SUB_KEYS, TEAM_KEYS, FOLLOW_TEAM_KEYS, pickFollowedDay, updateReminderCrons };
+module.exports = { crawl, loadData, isStale, DATA_FILE, SUB_KEYS, TEAM_KEYS, FOLLOW_TEAM_KEYS, pickFollowedDay, updateReminderCrons, TEAMS };
 
 // 命令行直接运行: node crawler.js
 if (require.main === module) {
