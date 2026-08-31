@@ -16,13 +16,15 @@ const TT_KEYWORDS = ['乒乓球', 'WTT', '乒超', '世乒赛', '乒联'];
 // LOL: label 中含 英雄联盟 或 LOL
 const LOL_KEYWORDS = ['英雄联盟', 'LOL'];
 // 足球只保留这些联赛
-const FOOTBALL_KEYWORDS = ['英超', '中超', '欧冠', '西甲'];
-// 足球子分类（页签）：label 关键词 -> sub key
+const FOOTBALL_KEYWORDS = ['英超', '中超', '欧冠', '西甲', '足协杯', '亚冠', '亚精英赛'];
+// 足球子分类（页签）：label 关键词（支持 '|' 分隔的多别名） -> sub key
 const FOOTBALL_SUBS = [
   ['英超', 'yingchao'],
   ['中超', 'zhongchao'],
   ['欧冠', 'ouguan'],
   ['西甲', 'xijia'],
+  ['足协杯', 'zuxiebei'],
+  ['亚冠|亚精英赛|亚冠精英', 'yaguan'], // 2025+ 亚冠精英联赛常以"亚精英赛"名义显示
 ];
 const SUB_KEYS = FOOTBALL_SUBS.map(([, k]) => k);
 // 关注的球队（页签）：label 关键词 -> team key
@@ -62,11 +64,14 @@ function classify(item) {
   return 'other';
 }
 
-// 足球赛事的子分类（yingchao/zhongchao/ouguan/xijia），供独立页签过滤
+// 足球赛事的子分类，供独立页签过滤。关键词支持 '|' 分隔多个别名。
 function subCategory(item) {
   if (item.category !== 'football') return '';
-  const hit = FOOTBALL_SUBS.find(([kw]) => (item.label || '').includes(kw));
-  return hit ? hit[1] : '';
+  const label = item.label || '';
+  for (const [pat, key] of FOOTBALL_SUBS) {
+    if (pat.split('|').some(kw => kw && label.includes(kw))) return key;
+  }
+  return '';
 }
 
 // 赛事涉及的关注球队（可多支，如"阿森纳 vs 曼城"）
