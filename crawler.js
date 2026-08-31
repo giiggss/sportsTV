@@ -48,6 +48,13 @@ const TEAMS = [
   ['皇马', 'realmadrid'],
   ['马德里竞技', 'atletico'],
   ['马竞', 'atletico'],
+  ['巴黎圣日耳曼', 'psg'],
+  ['大巴黎', 'psg'],
+  ['拜仁慕尼黑', 'bayern'],
+  ['拜仁', 'bayern'],
+  ['国际米兰', 'inter'],
+  ['国米', 'inter'],
+  ['那不勒斯', 'napoli'],
   ['杜塞尔多夫', 'duesseldorf'], // 德乒甲，樊振东所在队
 ];
 const TEAM_KEYS = [...new Set(TEAMS.map(([, k]) => k))];
@@ -180,7 +187,7 @@ function esc(s) {
 }
 
 // 关注的球队（与页签"我的球队"一致），卡片只展示这些队伍的比赛
-const FOLLOW_TEAM_KEYS = ['mancity', 'arsenal', 'manutd', 'chelsea', 'liverpool', 'barcelona', 'realmadrid', 'atletico', 'shenhua', 'shanggang', 'duesseldorf'];
+const FOLLOW_TEAM_KEYS = ['mancity', 'arsenal', 'manutd', 'chelsea', 'liverpool', 'barcelona', 'realmadrid', 'atletico', 'psg', 'bayern', 'inter', 'napoli', 'shenhua', 'shanggang', 'duesseldorf'];
 
 // 从全部赛事中选出"关注球队"的赛事，并确定卡片展示的日期（优先今天，否则最近一个有比赛的日期）
 function pickFollowedDay(events) {

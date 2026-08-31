@@ -1,5 +1,5 @@
 {
-  "crawledAt": "2026-08-31T06:41:47.809Z",
+  "crawledAt": "2026-08-31T08:01:03.695Z",
   "source": "https://m.zhibo8.com/",
   "count": 716,
   "events": [
@@ -234,7 +234,7 @@
       "home": "萨菲乌林",
       "away": "阿尔卡拉斯",
       "channel": "互动直播",
-      "status": "",
+      "status": "延期",
       "important": true,
       "type": "other",
       "label": "综合,网球,阿尔卡拉斯,其他,萨菲乌林,美网,美网男单第1轮",
@@ -953,7 +953,9 @@
       "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2059177v.htm",
       "category": "other",
       "sub": "",
-      "teams": []
+      "teams": [
+        "bayern"
+      ]
     },
     {
       "date": "2026-09-03",
@@ -1789,7 +1791,9 @@
       "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2059500v.htm",
       "category": "other",
       "sub": "",
-      "teams": []
+      "teams": [
+        "psg"
+      ]
     },
     {
       "date": "2026-09-05",
@@ -2451,7 +2455,10 @@
       "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2057411v.htm",
       "category": "other",
       "sub": "",
-      "teams": []
+      "teams": [
+        "inter",
+        "napoli"
+      ]
     },
     {
       "date": "2026-09-06",
@@ -2483,7 +2490,9 @@
       "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2076769v.htm",
       "category": "other",
       "sub": "",
-      "teams": []
+      "teams": [
+        "bayern"
+      ]
     },
     {
       "date": "2026-09-06",
@@ -3647,7 +3656,8 @@
       "category": "football",
       "sub": "ouguan",
       "teams": [
-        "realmadrid"
+        "realmadrid",
+        "inter"
       ]
     },
     {
@@ -3795,7 +3805,8 @@
       "category": "football",
       "sub": "ouguan",
       "teams": [
-        "arsenal"
+        "arsenal",
+        "napoli"
       ]
     },
     {
@@ -3812,7 +3823,9 @@
       "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2272662v.htm",
       "category": "football",
       "sub": "ouguan",
-      "teams": []
+      "teams": [
+        "psg"
+      ]
     },
     {
       "date": "2026-09-10",
@@ -4041,7 +4054,9 @@
       "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2272711v.htm",
       "category": "football",
       "sub": "ouguan",
-      "teams": []
+      "teams": [
+        "bayern"
+      ]
     },
     {
       "date": "2026-09-11",
@@ -5205,7 +5220,9 @@
       "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2076779v.htm",
       "category": "other",
       "sub": "",
-      "teams": []
+      "teams": [
+        "bayern"
+      ]
     },
     {
       "date": "2026-09-13",
@@ -5240,7 +5257,9 @@
       "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2057419v.htm",
       "category": "other",
       "sub": "",
-      "teams": []
+      "teams": [
+        "napoli"
+      ]
     },
     {
       "date": "2026-09-14",
@@ -5272,7 +5291,9 @@
       "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2059504v.htm",
       "category": "other",
       "sub": "",
-      "teams": []
+      "teams": [
+        "psg"
+      ]
     },
     {
       "date": "2026-09-14",
@@ -5370,7 +5391,9 @@
       "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2057415v.htm",
       "category": "other",
       "sub": "",
-      "teams": []
+      "teams": [
+        "inter"
+      ]
     },
     {
       "date": "2026-09-15",
