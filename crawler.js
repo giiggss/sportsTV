@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { fetchTTBLItems } = require('./ttbl');
+const { fetchWTTItems } = require('./wtt');
 const { collectScoreHistory, applyHistoryToEvents } = require('./history');
 
 const DATA_DIR = path.join(__dirname, 'data');
@@ -302,6 +303,21 @@ async function crawl() {
     console.log(`[ttbl] 已并入德乒甲赛程 ${raw.length} 场`);
   } catch (e) {
     console.error(`[ttbl] 抓取失败(不影响直播吧数据): ${e.message}`);
+  }
+
+  // WTT 乒乓球赛事——从 worldtabletennis.com 官方 API 补充（非 Youth/Feeder）
+  try {
+    const wttRaw = await fetchWTTItems(30, 30); // 前后30天
+    for (const it of wttRaw) {
+      it.category = 'pingpong'; // WTT 全部是乒乓球
+      it.sub = ''; // WTT 不细分
+      it.teams = []; // WTT 是个人赛，不涉及关注球队
+      it.important = /决赛|半决赛/.test(it.round || ''); // 决赛/半决赛标为重要
+      events.push(it);
+    }
+    console.log(`[wtt] 已并入 WTT 赛事 ${wttRaw.length} 场`);
+  } catch (e) {
+    console.error(`[wtt] 抓取失败(不影响其他数据): ${e.message}`);
   }
 
   // 历史比分（关注球队的完赛结果）：从比分接口增量保存，合并回 events
