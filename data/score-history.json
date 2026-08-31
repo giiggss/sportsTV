@@ -1,6 +1,21 @@
 {
-  "updatedAt": "2026-08-31T17:43:54.222Z",
+  "updatedAt": "2026-08-31T17:58:42.192Z",
   "entries": [
+    {
+      "date": "2026-09-01",
+      "time": "00:00",
+      "league": "",
+      "home": "拜仁慕尼黑女足",
+      "away": "美因茨女足",
+      "homeScore": "2",
+      "awayScore": "0",
+      "teams": [
+        "bayern"
+      ],
+      "source": "zhibo8-score",
+      "sport": "football",
+      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2099947v.htm"
+    },
     {
       "date": "2026-08-31",
       "time": "19:30",
