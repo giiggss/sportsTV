@@ -200,13 +200,16 @@ async function fetchWTTItems(daysBack = 14, daysAhead = 30) {
   }
   const now = new Date();
   const filtered = events.filter(e => {
-    if (/youth|feeder/i.test(e.eventName)) return false;
+    const name = e.eventName || '';
+    if (/youth|feeder/i.test(name)) return false;
+    // 排除常规挑战赛(Contender)，但保留球星挑战赛(Star Contender)
+    if (/contender/i.test(name) && !/star\s*contender/i.test(name)) return false;
     const s = new Date(e.startDateTime);
     const diff = (now - s) / 864e5;
     return diff >= -daysAhead && diff <= daysBack; // 开始日期在 [now-daysBack, now+daysAhead]
   }).sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
 
-  console.log(`[wtt] 近期非Youth/Feeder赛事 ${filtered.length} 个`);
+  console.log(`[wtt] 近期非Youth/Feeder/常规挑战赛赛事 ${filtered.length} 个`);
   const all = [];
   for (const ev of filtered) {
     let eventMatchCount = 0;
