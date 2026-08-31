@@ -101,7 +101,8 @@
   .ftags button.active .num { color: var(--accent); opacity: .6; }
 
   /* ---------- 日期横向滚动条 ---------- */
-  .date-row { display: flex; align-items: center; gap: 8px; margin: 22px 0 4px; }
+  .date-fixed { display: flex; gap: 8px; margin: 22px 0 6px; }
+  .date-row { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; }
   .date-arrow {
     flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
     border: 1px solid var(--line-2); background: var(--bg); color: var(--text-2);
@@ -125,12 +126,6 @@
   .date-chip:hover { color: var(--text); }
   .date-chip.active { background: var(--accent-light); border-color: var(--accent-border); color: var(--accent); }
   .date-chip.active .w { color: var(--accent); opacity: .65; }
-  /* “全部”固定在横向滚动条最左侧，不随日期滚动 */
-  .date-chip.all-chip {
-    position: sticky; left: 0; z-index: 2;
-    background: var(--bg-soft); box-shadow: 6px 0 8px -6px rgba(0,0,0,.25);
-  }
-  .date-chip.all-chip.active { background: var(--accent-light); }
 
   /* ---------- 赛事列表（行式极简） ---------- */
   .list { margin-top: 10px; }
@@ -350,9 +345,10 @@ function renderTabs(counts) {
   }
 }
 
-// ---------- 日期：横向滚动选择器 ----------
+// ---------- 日期：上排固定(全部/今天) + 横向滚动日期条 ----------
 function renderDates(dates) {
   $dates.innerHTML = '';
+  $datesFixed.innerHTML = '';
   const mkChip = (val, top, week) => {
     const btn = document.createElement('button');
     btn.className = 'date-chip' + ((dateFilter || '') === (val || '') ? ' active' : '');
@@ -360,11 +356,14 @@ function renderDates(dates) {
     btn.onclick = () => { dateFilter = val; render(); }; // 重新渲染时页签数量会按所选日期重算
     return btn;
   };
-  if (dates.length > 1) {
-    const allChip = mkChip('', '全部', '所有');
-    allChip.classList.add('all-chip'); // 固定在最左侧
-    $dates.appendChild(allChip);
+  // 上排固定：全部 + 今天（今天有赛事时才显示）
+  $datesFixed.appendChild(mkChip('', '全部', '所有'));
+  const today = (cache && cache.today) || localToday();
+  if (dates.includes(today)) {
+    const tl = dateLabel(today);
+    $datesFixed.appendChild(mkChip(today, '今天', tl.week));
   }
+  // 下排：全部日期横向滚动
   for (const ds of dates) {
     const { label, week } = dateLabel(ds);
     $dates.appendChild(mkChip(ds, label, week));
