@@ -276,11 +276,12 @@ function fmtDateTime(iso) {
   return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
-// 可用日期（保持原顺序：今天在前）
+// 可用日期（升序排序；多数据源混合：直播吧从今天起向未来，WTT/德乒甲含历史日期）
 function availableDates() {
-  const seen = [];
-  for (const e of cache.events) if (!seen.includes(e.date)) seen.push(e.date);
-  return seen;
+  const seen = new Set();
+  for (const e of cache.events) seen.add(e.date);
+  // 按日期升序排序（数据源是混合的：直播吧从今天起向未来，WTT/德乒甲含历史日期，不排序会乱）
+  return [...seen].sort();
 }
 
 function localToday() {
@@ -402,7 +403,8 @@ $dates.addEventListener('scroll', updateArrows, { passive: true });
 
 // ---------- 列表 ----------
 function renderList() {
-  const ev = filtered();
+  // 按 日期+时间 升序排序，保证"全部"视图下多数据源的日期分组也是按时间轴排列
+  const ev = filtered().slice().sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
   if (ev.length === 0) {
     $list.innerHTML = '<div class="empty">暂无赛事</div>';
     return;
