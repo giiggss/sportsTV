@@ -126,6 +126,13 @@
   .date-chip:hover { color: var(--text); }
   .date-chip.active { background: var(--accent-light); border-color: var(--accent-border); color: var(--accent); }
   .date-chip.active .w { color: var(--accent); opacity: .65; }
+  /* 当前页签下该日期有比赛：底部小圆点提示 */
+  .date-chip.has-match { position: relative; }
+  .date-chip.has-match::after {
+    content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);
+    width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+  }
+  .date-chip.has-match.active::after { background: var(--accent); }
 
   /* ---------- 赛事列表（行式极简） ---------- */
   .list { margin-top: 10px; }
@@ -437,7 +444,14 @@ function renderList() {
 function render() {
   if (!cache) return;
   const dates = availableDates();
-  renderDates(dates);
+  // 当前页签（不含日期过滤）下有比赛的日期集合 → 日期条高亮标记
+  const catEvents = category === 'recommended'
+    ? cache.events.filter(e => ['football', 'pingpong', 'lol'].includes(e.category) && e.important)
+    : category === 'all'
+      ? cache.events
+      : cache.events.filter(e => matchCategory(e, category));
+  const matchDates = new Set(catEvents.map(e => e.date));
+  renderDates(dates, matchDates);
   renderList();
   // 页签数量跟随所选日期：先按日期过滤，再统计各分类
   const base = dateFilter ? cache.events.filter(e => e.date === dateFilter) : cache.events;
