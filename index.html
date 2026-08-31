@@ -182,9 +182,14 @@
     .date-arrow { display: none; } /* 触屏直接滑动 */
     .erow { gap: 10px; padding: 12px 0; }
     .erow .t { width: 40px; font-size: 13px; }
-    .erow .teams { font-size: 15px; }
+    /* B6: 手机端允许队名折行，防止长队名（如巴黎圣日耳曼）被截断 */
+    .erow .teams { font-size: 14px; white-space: normal; line-height: 1.3; }
     .erow .channel { max-width: 76px; overflow: hidden; text-overflow: ellipsis; }
   }
+  /* B5: 刷新按钮加载动画 */
+  .icon-btn.loading svg { animation: spin 0.8s linear infinite; }
+  .icon-btn.loading { pointer-events: none; opacity: .5; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>
 <script>
 // 提前应用主题，避免深色用户看到白色闪烁
@@ -300,13 +305,16 @@ function dateLabel(ds) {
 function matchCategory(e, key) {
   if (SUB_KEYS.includes(key)) return e.category === 'football' && e.sub === key;
   if (key === 'dejia') return e.category === 'pingpong' && /德甲|德国杯/.test(e.label || '');
+  // B2: 乒乓标签排除德乒甲/德国杯（那些归"德乒"标签管）
+  if (key === 'pingpong') return e.category === 'pingpong' && !/德甲|德国杯/.test(e.label || '');
   if (TEAM_KEYS.includes(key)) return Array.isArray(e.teams) && e.teams.includes(key);
   return e.category === key;
 }
 
 function filtered() {
   let ev = cache.events;
-  if (category === 'recommended') ev = ev.filter(e => ['football', 'pingpong', 'lol'].includes(e.category) && e.important);
+  // B4: 推荐不再限类别，所有 important 赛事都进推荐（足球/乒乓/LOL/篮球/网球等）
+  if (category === 'recommended') ev = ev.filter(e => e.important);
   else if (category !== 'all') ev = ev.filter(e => matchCategory(e, category));
   if (dateFilter) ev = ev.filter(e => e.date === dateFilter);
   return ev;
@@ -377,8 +385,9 @@ function renderDates(dates, matchDates) {
     const tl = dateLabel(today);
     $datesFixed.appendChild(mkChip(today, '今天', tl.week));
   }
-  // 下排：全部日期横向滚动
+  // 下排：全部日期横向滚动（跳过"今天"，上排固定区已经有了）
   for (const ds of dates) {
+    if (ds === today) continue;
     const { label, week } = dateLabel(ds);
     $dates.appendChild(mkChip(ds, label, week));
   }
@@ -407,7 +416,13 @@ function renderList() {
   // 按 日期+时间 升序排序，保证"全部"视图下多数据源的日期分组也是按时间轴排列
   const ev = filtered().slice().sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
   if (ev.length === 0) {
-    $list.innerHTML = '<div class="empty">暂无赛事</div>';
+    // B3: 推荐为空时给出降级提示，告诉用户"全部"里有多少场
+    if (category === 'recommended') {
+      const allCount = cache ? cache.events.filter(e => !dateFilter || e.date === dateFilter).length : 0;
+      $list.innerHTML = `<div class="empty">今日暂无推荐赛事<br><a href="javascript:void(0)" onclick="document.querySelector('.segmented button:nth-child(2)').click()" style="color:var(--accent);text-decoration:underline;">查看全部 ${allCount} 场</a></div>`;
+    } else {
+      $list.innerHTML = '<div class="empty">暂无赛事</div>';
+    }
     return;
   }
   $list.innerHTML = '';
@@ -424,10 +439,17 @@ function renderList() {
     const div = document.createElement('div');
     div.className = 'erow';
     const mid = e.score ? `<span class="score">${e.score.replace('-', ' - ')}</span>` : '<span class="vs">vs</span>';
-    const teams = e.home && e.away
-      ? `${e.home}${mid}${e.away}`
-      : (e.league || '赛事');
-    const status = e.status ? `<span class="status ${/进行中|上半|下半|第\S+节|中场/.test(e.status) ? 'live' : ''}">${e.status}</span>` : '';
+    // B9: home==away 或两者都为空时，只显示一次队名/赛事名，避免"天下足球 天下足球"这种重复
+    let teams;
+    if (e.home && e.away && e.home !== e.away) {
+      teams = `${e.home}${mid}${e.away}`;
+    } else if (e.home) {
+      teams = e.home;
+    } else {
+      teams = e.league || '赛事';
+    }
+    // B8: 无具体时间时不显示 "--"，留空更干净
+    const timeStr = e.time || '';
     div.innerHTML = `
       <div class="t">${e.time || '--'}</div>
       <div class="mid">
@@ -451,7 +473,7 @@ function render() {
   const dates = availableDates();
   // 当前页签（不含日期过滤）下有比赛的日期集合 → 日期条高亮标记
   const catEvents = category === 'recommended'
-    ? cache.events.filter(e => ['football', 'pingpong', 'lol'].includes(e.category) && e.important)
+    ? cache.events.filter(e => e.important) // B4: 与 filtered() 保持一致
     : category === 'all'
       ? cache.events
       : cache.events.filter(e => matchCategory(e, category));
@@ -519,10 +541,17 @@ if (IS_STATIC) {
   // 静态部署下数据由 GitHub Actions 每天定时更新，隐藏手动抓取按钮
   document.getElementById('refresh').style.display = 'none';
 } else {
-  document.getElementById('refresh').onclick = async () => {
+  const refreshBtn = document.getElementById('refresh');
+  refreshBtn.onclick = async () => {
+    // B5: 点击后加旋转动画+禁用，防止重复点击
+    refreshBtn.classList.add('loading');
     $meta.textContent = '正在抓取最新数据…';
-    await fetch('/api/crawl');
-    load();
+    try {
+      await fetch('/api/crawl');
+      await load();
+    } finally {
+      refreshBtn.classList.remove('loading');
+    }
   };
 }
 
