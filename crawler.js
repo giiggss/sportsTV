@@ -158,16 +158,10 @@ function parseSchedule(html) {
         label,
         url: href ? 'https://www.zhibo8.cc' + href : '',
       };
-      // 条目内嵌比分: team-name 子元素或 remind 旁可能有 <span class="score">等，做宽松抽取 (完赛/进行中)
-      if (!item.score) {
-        const innerScore = body.match(/class="score[^"]*"[^>]*>\s*(\d+)\s*[-:]\s*(\d+)\s*<\//);
-        if (innerScore) {
-          item.score = `${innerScore[1]}-${innerScore[2]}`;
-        } else {
-          // 兜底: body 里夹着 "主队 N - N 客队" 样式（比分直接嵌在 team-name 文本里或旁边）
-          const loose = body.match(/>\s*(\d+)\s*[-:]\s*(\d+)\s*</);
-          if (loose && /(完赛|进行|中场|\d+′)/.test(body)) item.score = `${loose[1]}-${loose[2]}`;
-        }
+      // 条目内嵌比分: 仅足球完赛/进行中才取，且只认 class="score" 的 "N-N"（不能用冒号分隔——会误中开赛时间 07:00）
+      if (!item.score && type === 'football' && /(完赛|进行|中场|\d+′)/.test(status || '')) {
+        const innerScore = body.match(/class="score[^"]*"[^>]*>\s*(\d{1,2})\s*-\s*(\d{1,2})\s*<\//);
+        if (innerScore) item.score = `${innerScore[1]}-${innerScore[2]}`;
       }
       item.category = classify(item);
       item.sub = subCategory(item);
