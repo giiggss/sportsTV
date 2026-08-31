@@ -448,6 +448,11 @@ async function load() {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     cache = { crawledAt: data.crawledAt, today: localToday(), events: data.events };
+    if (!dateInited) {
+      dateInited = true;
+      const t = localToday();
+      if (availableDates().includes(t)) dateFilter = t; // 初始页面默认展示当天赛事
+    }
     if (dateFilter && !availableDates().includes(dateFilter)) dateFilter = '';
     render();
   } catch (e) {
