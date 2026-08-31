@@ -356,12 +356,14 @@ function renderTabs(counts) {
 }
 
 // ---------- 日期：上排固定(全部/今天) + 横向滚动日期条 ----------
-function renderDates(dates) {
+// matchDates: 当前页签下有比赛的日期集合（用于在日期chip上画高亮圆点）
+function renderDates(dates, matchDates) {
   $dates.innerHTML = '';
   $datesFixed.innerHTML = '';
   const mkChip = (val, top, week) => {
     const btn = document.createElement('button');
     btn.className = 'date-chip' + ((dateFilter || '') === (val || '') ? ' active' : '');
+    if (val && matchDates && matchDates.has(val)) btn.classList.add('has-match'); // 当前分类该日期有比赛
     btn.innerHTML = `<div class="d">${top}</div><div class="w">${week}</div>`;
     btn.onclick = () => { dateFilter = val; render(); }; // 重新渲染时页签数量会按所选日期重算
     return btn;
