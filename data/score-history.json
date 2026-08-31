@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-31T19:58:42.210Z",
+  "updatedAt": "2026-08-31T20:03:07.104Z",
   "entries": [
     {
       "date": "2026-09-01",
@@ -15,6 +15,21 @@
       "source": "zhibo8-score",
       "sport": "football",
       "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2282692v.htm"
+    },
+    {
+      "date": "2026-09-01",
+      "time": "02:00",
+      "league": "",
+      "home": "布莱顿U21",
+      "away": "阿森纳U21",
+      "homeScore": "2",
+      "awayScore": "2",
+      "teams": [
+        "arsenal"
+      ],
+      "source": "zhibo8-score",
+      "sport": "football",
+      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2146119v.htm"
     },
     {
       "date": "2026-09-01",
