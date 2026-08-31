@@ -210,6 +210,8 @@
 
   <section id="tabs"></section>
 
+  <div class="date-fixed" id="datesFixed"></div>
+
   <div class="date-row">
     <button class="date-arrow" id="datePrev" title="向前">‹</button>
     <div class="date-scroll" id="dates"></div>
@@ -254,6 +256,7 @@ let cache = null;      // { crawledAt, today, events }
 const $list = document.getElementById('list');
 const $tabs = document.getElementById('tabs');
 const $dates = document.getElementById('dates');
+const $datesFixed = document.getElementById('datesFixed');
 const $meta = document.getElementById('meta');
 
 // GitHub Pages 静态部署时读取仓库内数据文件（由 Actions 每日更新）；本地运行读本地 API
