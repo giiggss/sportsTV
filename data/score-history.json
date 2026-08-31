@@ -1,6 +1,21 @@
 {
-  "updatedAt": "2026-08-31T19:42:51.775Z",
+  "updatedAt": "2026-08-31T19:53:18.957Z",
   "entries": [
+    {
+      "date": "2026-09-01",
+      "time": "02:00",
+      "league": "",
+      "home": "蒙得维的亚利物浦后备队",
+      "away": "马尔多纳多后备队",
+      "homeScore": "1",
+      "awayScore": "2",
+      "teams": [
+        "liverpool"
+      ],
+      "source": "zhibo8-score",
+      "sport": "football",
+      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2282692v.htm"
+    },
     {
       "date": "2026-09-01",
       "time": "00:00",
