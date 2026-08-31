@@ -1,0 +1,19 @@
+{
+  "updatedAt": "2026-08-31T01:52:36.540Z",
+  "entries": [
+    {
+      "date": "2026-08-30",
+      "time": "23:30",
+      "league": "英超第2轮",
+      "home": "曼彻斯特联",
+      "away": "伊普斯维奇",
+      "homeScore": "1",
+      "awayScore": "1",
+      "teams": [
+        "manutd"
+      ],
+      "source": "manual-user-confirmed",
+      "url": "https://www.zhibo8.cc/"
+    }
+  ]
+}

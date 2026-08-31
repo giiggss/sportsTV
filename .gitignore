@@ -1,5 +1,8 @@
-# 运行时爬取的数据缓存
-data/
+# 运行时爬取的数据缓存（events/card 作为静态站数据被白名单，score-history 为持久化比分历史被白名单，其余data内状态文件忽略）
+data/*
+!data/events.json
+!data/card.html
+!data/score-history.json
 
 # 本地私密配置（Server酱 key 等）
 config.json

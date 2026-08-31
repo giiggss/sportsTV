@@ -69,9 +69,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if [ -f data/notify-state.json ]; then
-            git add -f data/notify-state.json data/events.json data/card.html
+            git add -f data/notify-state.json data/events.json data/card.html data/score-history.json
           else
-            git add -f data/events.json data/card.html
+            git add -f data/events.json data/card.html data/score-history.json
           fi
           git add .github/workflows/match-reminders.yml
           if git diff --cached --quiet; then

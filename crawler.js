@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { fetchTTBLItems } = require('./ttbl');
+const { collectScoreHistory, applyHistoryToEvents } = require('./history');
 
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'events.json');
@@ -27,13 +28,17 @@ const SUB_KEYS = FOOTBALL_SUBS.map(([, k]) => k);
 // 关注的球队（页签）：label 关键词 -> team key
 const TEAMS = [
   ['曼城', 'mancity'],
+  ['曼彻斯特城', 'mancity'], // 官方全称（比分接口等用）
   ['阿森纳', 'arsenal'],
   ['曼联', 'manutd'],
+  ['曼彻斯特联', 'manutd'], // 官方全称
   ['切尔西', 'chelsea'],
   ['利物浦', 'liverpool'],
   ['申花', 'shenhua'],
+  ['上海申花', 'shenhua'],
   ['上港', 'shanggang'], // 兼容旧称
   ['海港', 'shanggang'],
+  ['上海海港', 'shanggang'],
   ['巴塞罗那', 'barcelona'],
   ['巴萨', 'barcelona'],
   ['皇家马德里', 'realmadrid'],
@@ -148,6 +153,17 @@ function parseSchedule(html) {
         label,
         url: href ? 'https://www.zhibo8.cc' + href : '',
       };
+      // 条目内嵌比分: team-name 子元素或 remind 旁可能有 <span class="score">等，做宽松抽取 (完赛/进行中)
+      if (!item.score) {
+        const innerScore = body.match(/class="score[^"]*"[^>]*>\s*(\d+)\s*[-:]\s*(\d+)\s*<\//);
+        if (innerScore) {
+          item.score = `${innerScore[1]}-${innerScore[2]}`;
+        } else {
+          // 兜底: body 里夹着 "主队 N - N 客队" 样式（比分直接嵌在 team-name 文本里或旁边）
+          const loose = body.match(/>\s*(\d+)\s*[-:]\s*(\d+)\s*</);
+          if (loose && /(完赛|进行|中场|\d+′)/.test(body)) item.score = `${loose[1]}-${loose[2]}`;
+        }
+      }
       item.category = classify(item);
       item.sub = subCategory(item);
       item.teams = teamMatches(item);
@@ -272,7 +288,7 @@ function generateCard(data) {
 
 async function crawl() {
   const html = await fetchPage();
-  const events = parseSchedule(html);
+  let events = parseSchedule(html);
   if (events.length === 0) throw new Error('解析结果为空，页面结构可能已变化');
 
   // 德乒甲(TTBL)赛程——直播吧没有，从官方站 ttbl.de 补充；失败不影响直播吧数据
@@ -288,6 +304,12 @@ async function crawl() {
   } catch (e) {
     console.error(`[ttbl] 抓取失败(不影响直播吧数据): ${e.message}`);
   }
+
+  // 历史比分（关注球队的完赛结果）：从比分接口增量保存，合并回 events
+  const hist = await collectScoreHistory({ TEAMS, FOLLOW_KEYS: FOLLOW_TEAM_KEYS });
+  const beforeMerge = events.length;
+  events = applyHistoryToEvents(events, hist, { TEAMS, FOLLOW_KEYS: FOLLOW_TEAM_KEYS });
+  if (events.length > beforeMerge) console.log(`[history] 补入 ${events.length - beforeMerge} 条历史完赛`);
 
   const data = {
     crawledAt: new Date().toISOString(),
