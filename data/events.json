@@ -1,24 +1,8 @@
 {
-  "crawledAt": "2026-08-31T20:42:17.766Z",
+  "crawledAt": "2026-08-31T20:53:03.467Z",
   "source": "https://m.zhibo8.com/",
   "count": 714,
   "events": [
-    {
-      "date": "2026-09-01",
-      "time": "02:00",
-      "league": "斯诺克英国公开赛第1轮",
-      "home": "",
-      "away": "",
-      "channel": "",
-      "status": "",
-      "important": true,
-      "type": "other",
-      "label": "综合,斯诺克,其他",
-      "url": "https://www.zhibo8.cc/news/web/other/2024-04-28/662dc5ad1cb63native.htm",
-      "category": "other",
-      "sub": "",
-      "teams": []
-    },
     {
       "date": "2026-09-01",
       "time": "03:00",
@@ -82,6 +66,22 @@
       "important": true,
       "type": "basketball",
       "label": "篮球,推荐属性,NBA",
+      "url": "https://www.zhibo8.cc/news/web/other/2024-04-28/662dc5ad1cb63native.htm",
+      "category": "other",
+      "sub": "",
+      "teams": []
+    },
+    {
+      "date": "2026-09-01",
+      "time": "04:00",
+      "league": "斯诺克英国公开赛第1轮",
+      "home": "",
+      "away": "",
+      "channel": "",
+      "status": "",
+      "important": true,
+      "type": "other",
+      "label": "综合,斯诺克,其他",
       "url": "https://www.zhibo8.cc/news/web/other/2024-04-28/662dc5ad1cb63native.htm",
       "category": "other",
       "sub": "",
