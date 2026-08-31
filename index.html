@@ -311,10 +311,11 @@ function matchCategory(e, key) {
   return e.category === key;
 }
 
-// 推荐定义：important 且（关注球队参与 或 属于关注的联赛/乒/LOL），避免周末"全平台标重要"导致推荐=全部
+// 推荐定义：关注球队参与的比赛直接进推荐（含德乒甲杜塞尔多夫，无important标记）；
+// 其余需 important 且属于关注的联赛/乒/LOL，避免周末"全平台标重要"导致推荐=全部
 function isRecommended(e) {
+  if (Array.isArray(e.teams) && e.teams.length > 0) return true; // 关注球队参与的比赛一律推荐
   if (!e.important) return false;
-  if (Array.isArray(e.teams) && e.teams.length > 0) return true; // 关注球队参与的比赛
   if (e.category === 'football' && SUB_KEYS.includes(e.sub)) return true; // 关注联赛(英超/中超/西甲/欧冠/足协杯/亚冠)
   if (e.category === 'pingpong' || e.category === 'lol') return true; // 乒乓(WTT决赛/半决赛由爬虫标important)+LOL
   return false;
