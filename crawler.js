@@ -10,6 +10,7 @@ const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'events.json');
 const SOURCE_URL = 'https://m.zhibo8.com/';
 const FINISHED_URL = 'https://zhibo8.com/schedule/finish_more.htm';
+const QIUMIWU_URL = 'https://m.qiumiwu.com/game/zuqiu';
 const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1';
 
 // ---------------- 分类规则 ----------------
@@ -162,6 +163,101 @@ function parseFinishedHtml(html) {
     item.teams = teamMatches(item);
     // 只保留关注球队参与的完赛（避免数据膨胀）
     if (item.teams.length > 0) events.push(item);
+  }
+  return events;
+}
+
+// ---------------- 球秘网(qiumiwu.com) 补充抓取 ----------------
+// 直播吧赛程页可能漏掉部分凌晨比赛，用 qiumiwu 做补充
+async function fetchQiumiwu() {
+  try {
+    const res = await fetch(QIUMIWU_URL, {
+      headers: {
+        'User-Agent': UA,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return parseQiumiwuHtml(await res.text());
+  } catch (e) {
+    console.error(`[qiumiwu] 抓取失败: ${e.message}`);
+    return [];
+  }
+}
+
+function parseQiumiwuHtml(html) {
+  const events = [];
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  // 按日期标记分段: "今天 09-01" 或 "09-02 星期三"
+  const dateRe = /(今天\s*(\d{2}-\d{2})|(\d{2}-\d{2})\s*星期[一二三四五六日])/g;
+  const markers = [];
+  let dm;
+  while ((dm = dateRe.exec(html)) !== null) {
+    markers.push({ text: dm[0], date: dm[2] || dm[3], start: dm.index });
+  }
+  if (markers.length === 0) return events;
+
+  // 每条比赛: <div class="fixture__list" ...><div class="fixture__list__header">...</div>
+  //            <a class="fixture__list__info" href="..."><div class="fixture__list__team">主队</div>
+  //            <div class="fixture__list__score"><span>0</span><span>1</span></div>
+  //            <div class="fixture__list__team">客队</div></a></div>
+  for (let i = 0; i < markers.length; i++) {
+    const segStart = markers[i].start;
+    const segEnd = i + 1 < markers.length ? markers[i + 1].start : html.length;
+    const segment = html.slice(segStart, segEnd);
+
+    const md = markers[i].date.split('-');
+    const date = `${currentYear}-${md[0]}-${md[1]}`;
+
+    const listStarts = [...segment.matchAll(/<div[^>]*class="fixture__list"/g)];
+    for (let j = 0; j < listStarts.length; j++) {
+      const start = listStarts[j].index;
+      const end = j + 1 < listStarts.length ? listStarts[j + 1].index : segment.length;
+      const itemHtml = segment.slice(start, end);
+
+      // 时间
+      const timeMatch = itemHtml.match(/<span>(\d{1,2}:\d{2})<\/span>/);
+      const time = timeMatch ? timeMatch[1] : '';
+
+      // 联赛名
+      const leagueMatch = itemHtml.match(/<span>([^<]*?(?:联赛|杯赛|资格赛|友谊赛)[^<]*)<\/span>/);
+      const league = leagueMatch ? leagueMatch[1].trim() : '';
+
+      // 队名和比分
+      const teamsMatch = itemHtml.match(/<a[^>]*class="fixture__list__info"[^>]*>([\s\S]*?)<\/a>/);
+      if (!teamsMatch) continue;
+      const teamsHtml = teamsMatch[1];
+
+      const teamSpans = [...teamsHtml.matchAll(/<div class="fixture__list__team"><span>([^<]*)<\/span>/g)];
+      const home = teamSpans[0] ? teamSpans[0][1].trim() : '';
+      const away = teamSpans[1] ? teamSpans[1][1].trim() : '';
+      if (!home || !away) continue;
+
+      const scoreSpans = [...teamsHtml.matchAll(/<span class="fixture__list__score__text"[^>]*>\s*(\d{1,2})\s*<\/span>/g)];
+      const homeScore = scoreSpans[0] ? scoreSpans[0][1] : '';
+      const awayScore = scoreSpans[1] ? scoreSpans[1][1] : '';
+
+      // URL
+      const hrefMatch = itemHtml.match(/href="([^"]*)"/);
+      const url = hrefMatch ? (hrefMatch[1].startsWith('http') ? hrefMatch[1] : 'https://m.qiumiwu.com' + hrefMatch[1]) : '';
+
+      const item = {
+        date, time, league, home, away,
+        channel: '',
+        status: '',
+        important: false,
+        type: 'football',
+        label: `${league},${home},${away}`,
+        url,
+        score: homeScore && awayScore ? `${homeScore}-${awayScore}` : undefined,
+      };
+      item.category = classify(item);
+      item.sub = subCategory(item);
+      item.teams = teamMatches(item);
+      if (item.teams.length > 0) events.push(item);
+    }
   }
   return events;
 }
@@ -390,6 +486,28 @@ async function crawl() {
     console.error(`[finished] 完赛列表处理失败(不影响主数据): ${e.message}`);
   }
 
+  // 球秘网补充：部分直播吧遗漏的足球赛事（如凌晨场次）
+  // 注意：qiumiwu 队名可能简称（如"维拉"vs"阿斯顿维拉"），去重时同时检查包含关系
+  try {
+    const qmw = await fetchQiumiwu();
+    let added = 0;
+    for (const q of qmw) {
+      // 宽松去重：日期相同 + 队名互相包含（处理简称差异）
+      const dup = events.some(e =>
+        e.date === q.date &&
+        ((e.home === q.home || e.home.includes(q.home) || q.home.includes(e.home)) &&
+         (e.away === q.away || e.away.includes(q.away) || q.away.includes(e.away)))
+      );
+      if (!dup) {
+        events.push(q);
+        added++;
+      }
+    }
+    if (added > 0) console.log(`[qiumiwu] 补入 ${added} 场`);
+  } catch (e) {
+    console.error(`[qiumiwu] 补充抓取失败(不影响主数据): ${e.message}`);
+  }
+
   // 德乒甲(TTBL)赛程——直播吧没有，从官方站 ttbl.de 补充；失败不影响直播吧数据
   try {
     const raw = await fetchTTBLItems();
@@ -499,7 +617,7 @@ function isStale(data) {
   return !data.events.some(e => e.date === `${y}-${mo}-${d}`);
 }
 
-module.exports = { crawl, loadData, isStale, DATA_FILE, SUB_KEYS, TEAM_KEYS, FOLLOW_TEAM_KEYS, pickFollowedDay, updateReminderCrons, TEAMS, fetchFinishedMatches };
+module.exports = { crawl, loadData, isStale, DATA_FILE, SUB_KEYS, TEAM_KEYS, FOLLOW_TEAM_KEYS, pickFollowedDay, updateReminderCrons, TEAMS, fetchFinishedMatches, fetchQiumiwu };
 
 // 命令行直接运行: node crawler.js
 if (require.main === module) {
