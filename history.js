@@ -117,6 +117,16 @@ function applyHistoryToEvents(events, hist, { TEAMS, FOLLOW_KEYS }) {
   const list = events.slice();
   const histMatches = new Set(hist.entries.map(keyOf));
 
+  // 同队判定：双向 includes 能覆盖"维拉/阿斯顿维拉"这类连续简称，
+  // 但覆盖不了"曼联/曼彻斯特联"这种非连续简称——后者靠命中同一关注球队 key 判定
+  const sameTeam = (a, b) => {
+    const na = normalize(a), nb = normalize(b);
+    if (!na || !nb) return false;
+    if (na.includes(nb) || nb.includes(na)) return true;
+    const ka = matchKeysFromName(a, TEAMS);
+    return ka.length > 0 && ka.some(k => matchKeysFromName(b, TEAMS).includes(k));
+  };
+
   // A. 匹配已有事件
   for (const e of list) {
     if (e.score) continue; // 已有比分（如 TTBL 的）跳过
@@ -124,9 +134,7 @@ function applyHistoryToEvents(events, hist, { TEAMS, FOLLOW_KEYS }) {
     const awayKeys = matchKeysFromName(e.away, TEAMS);
     if (followFilter([...homeKeys, ...awayKeys], FOLLOW_KEYS).length === 0) continue;
     const hit = hist.entries.find(h =>
-      h.date === e.date
-      && ((normalize(e.home).includes(normalize(h.home)) || normalize(h.home).includes(normalize(e.home)))
-       && (normalize(e.away).includes(normalize(h.away)) || normalize(h.away).includes(normalize(e.away)))));
+      h.date === e.date && sameTeam(e.home, h.home) && sameTeam(e.away, h.away));
     if (hit) {
       e.score = `${hit.homeScore}-${hit.awayScore}`;
       if (!e.url && hit.url) e.url = hit.url;
@@ -139,6 +147,11 @@ function applyHistoryToEvents(events, hist, { TEAMS, FOLLOW_KEYS }) {
     if (followFilter(h.teams || [], FOLLOW_KEYS).length === 0) continue;
     const k = `${h.date}|${normalize(h.home)}|${normalize(h.away)}`;
     if (existingKeys.has(k)) continue;
+    // 模糊查重：赛程事件可能用简称（曼联 vs 曼彻斯特联），与 A 段保持同一套匹配，
+    // 否则同一天同一场比赛会既写比分又补合成事件，列表出现两条
+    const dup = list.some(e =>
+      e.date === h.date && sameTeam(e.home, h.home) && sameTeam(e.away, h.away));
+    if (dup) continue;
     existingKeys.add(k);
     const teamKeys = [...new Set([...matchKeysFromName(h.home, TEAMS), ...matchKeysFromName(h.away, TEAMS)])];
     const isBasketball = h.sport === 'basketball';
