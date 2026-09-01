@@ -88,7 +88,12 @@ function teamMatches(item) {
   const label = item.label || '';
   const hit = [];
   for (const [kw, key] of TEAMS) {
-    if (label.includes(kw) && !hit.includes(key)) hit.push(key);
+    const idx = label.indexOf(kw);
+    if (idx === -1 || hit.includes(key)) continue;
+    // 排除青年队：关键词后跟 U+数字（如 U21 / U18）
+    const after = label.slice(idx + kw.length);
+    if (/^U\d+/i.test(after)) continue;
+    hit.push(key);
   }
   return hit;
 }
