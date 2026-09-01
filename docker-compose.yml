@@ -2,7 +2,8 @@ services:
   tvguide:
     build: .
     ports:
-      - "3000:3000"
+      # 宿主端口用 TVGUIDE_PORT 控制（默认3000），容器内部固定 3000
+      - "${TVGUIDE_PORT:-3000}:3000"
     environment:
       # Server酱 key（sctp 开头的付费版 key），比分变化/德乒局分提醒用
       - SERVERCHAN_KEY=${SERVERCHAN_KEY}
