@@ -248,7 +248,7 @@ const TAB_GROUPS = [
 ];
 const ALL_KEYS = [...SEGMENTED.map(s => s.key), ...TAB_GROUPS.flatMap(g => g.keys)];
 const NAME = {
-  recommended: '推荐', all: '全部',
+  recommended: '关注', all: '全部',
   football: '足球', yingchao: '英超', zhongchao: '中超', xijia: '西甲', ouguan: '欧冠', zuxiebei: '足协杯', yaguan: '亚冠',
   mancity: '曼城', arsenal: '阿森纳', manutd: '曼联', chelsea: '切尔西', liverpool: '利物浦',
   barcelona: '巴塞罗那', realmadrid: '皇马', atletico: '马竞',
@@ -387,8 +387,8 @@ function renderDates(dates, matchDates) {
     btn.onclick = () => { dateFilter = val; render(); }; // 重新渲染时页签数量会按所选日期重算
     return btn;
   };
-  // 上排固定：全部 + 今天（今天有赛事时才显示）
-  $datesFixed.appendChild(mkChip('', '全部', '所有'));
+  // 上排固定：所有日期 + 今天（今天有赛事时才显示）
+  $datesFixed.appendChild(mkChip('', '所有日期', '全部'));
   const today = (cache && cache.today) || localToday();
   if (dates.includes(today)) {
     const tl = dateLabel(today);
