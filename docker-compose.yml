@@ -1,0 +1,17 @@
+services:
+  tvguide:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      # Server酱 key（sctp 开头的付费版 key），比分变化/德乒局分提醒用
+      - SERVERCHAN_KEY=${SERVERCHAN_KEY}
+      # 赛前提醒默认交云端 GitHub Actions；容器常开想接管赛前提醒就设 true（注意会重复云端推送，二选一）
+      - LOCAL_REMINDERS=false
+    volumes:
+      # 持久化爬取数据与比分/提醒状态，重建容器不丢历史（首次启动用镜像内种子数据初始化）
+      - tvguide-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  tvguide-data:

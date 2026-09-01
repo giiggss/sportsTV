@@ -16,11 +16,14 @@ const PORT = process.env.PORT || 3000;
 //   - 每分钟检查赛前提醒（开赛前30分/前10分/开赛时）
 //   - 每分钟检查关注球队进行中比赛的比分变化，变化即推送
 function loadConfig() {
+  let cfg = {};
   try {
-    return JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
-  } catch {
-    return {};
-  }
+    cfg = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
+  } catch {}
+  // Docker 部署约定用环境变量传配置，没有 config.json 时从 env 兜底
+  if (!cfg.serverchanKey && process.env.SERVERCHAN_KEY) cfg.serverchanKey = process.env.SERVERCHAN_KEY;
+  if (cfg.localReminders === undefined && process.env.LOCAL_REMINDERS) cfg.localReminders = process.env.LOCAL_REMINDERS === 'true';
+  return cfg;
 }
 
 function scheduleReminders() {
