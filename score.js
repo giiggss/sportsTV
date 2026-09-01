@@ -54,6 +54,7 @@ function matchFollowedLive(scoreList, events) {
         period: hit.period_cn,
         state: hit.state,
         url: hit.url ? LIVE_BASE + hit.url : '',
+        event: e, // 回指赛程条目，供爬虫把比分写回 events.json
       });
     }
   }

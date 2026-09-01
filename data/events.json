@@ -1,5 +1,5 @@
 {
-  "crawledAt": "2026-09-01T11:55:04.484Z",
+  "crawledAt": "2026-09-01T12:26:30.602Z",
   "source": "https://m.zhibo8.com/",
   "count": 714,
   "events": [
@@ -83,7 +83,8 @@
       "sub": "zuxiebei",
       "teams": [
         "shanggang"
-      ]
+      ],
+      "score": "0-2"
     },
     {
       "date": "2026-09-01",
@@ -101,7 +102,8 @@
       "sub": "zuxiebei",
       "teams": [
         "shenhua"
-      ]
+      ],
+      "score": "0-0"
     },
     {
       "date": "2026-09-01",
@@ -110,7 +112,7 @@
       "home": "奥利弗·布朗",
       "away": "赵心童",
       "channel": "虎牙",
-      "status": "",
+      "status": "进行中",
       "important": true,
       "type": "other",
       "label": "综合,斯诺克,其他,赵心童,奥利弗·布朗,斯诺克英国公开赛,斯诺克英国公开赛第1轮,推荐属性,NBA,篮球",
@@ -126,7 +128,7 @@
       "home": "查察朋·纳萨",
       "away": "常冰玉",
       "channel": "虎牙",
-      "status": "",
+      "status": "进行中",
       "important": true,
       "type": "other",
       "label": "综合,斯诺克,其他,查察朋·纳萨,常冰玉,斯诺克英国公开赛,斯诺克英国公开赛第2轮,推荐属性,NBA,篮球",

@@ -5,6 +5,7 @@ const path = require('path');
 const { fetchTTBLItems } = require('./ttbl');
 const { fetchWTTItems } = require('./wtt');
 const { collectScoreHistory, applyHistoryToEvents } = require('./history');
+const { fetchLiveScores, matchFollowedLive } = require('./score');
 
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'events.json');
@@ -560,6 +561,22 @@ async function crawl() {
   const beforeMerge = events.length;
   events = applyHistoryToEvents(events, hist, { TEAMS, FOLLOW_KEYS: FOLLOW_TEAM_KEYS });
   if (events.length > beforeMerge) console.log(`[history] 补入 ${events.length - beforeMerge} 条历史完赛`);
+
+  // 进行中/完赛实时比分（关注球队）：写入 events 的 score 字段，页面直接显示。
+  // 线上是静态站，赛程页又常不带进行中比分，只能靠每次爬取时从比分接口快照。
+  try {
+    const scoreList = await fetchLiveScores();
+    const live = matchFollowedLive(scoreList, events);
+    let liveN = 0;
+    for (const m of live) {
+      if (!m.event) continue;
+      m.event.score = `${m.homeScore}-${m.awayScore}`;
+      liveN++;
+    }
+    if (liveN) console.log(`[live] 已写入 ${liveN} 场关注球队比赛实时比分`);
+  } catch (e) {
+    console.error(`[live] 实时比分获取失败(不影响主数据): ${e.message}`);
+  }
 
   const data = {
     crawledAt: new Date().toISOString(),
