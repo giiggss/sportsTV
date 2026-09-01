@@ -508,34 +508,52 @@ async function crawl() {
     console.error(`[qiumiwu] 补充抓取失败(不影响主数据): ${e.message}`);
   }
 
-  // 德乒甲(TTBL)赛程——直播吧没有，从官方站 ttbl.de 补充；失败不影响直播吧数据
-  try {
-    const raw = await fetchTTBLItems();
-    for (const it of raw) {
-      it.category = classify(it);
-      it.sub = subCategory(it);
-      it.teams = teamMatches(it);
-      events.push(it);
+  // 上次数据兜底：ttbl/wtt 官方源偶发故障时返回空，直接写空会清空整个分类，
+  // 这里在抓取失败或结果为0时回退复用上次 events.json 中对应来源的数据
+  const prevData = loadData();
+  const prevEvents = (prevData && Array.isArray(prevData.events)) ? prevData.events : [];
+  // 回退上限：45天前的历史不再保留（防止休赛期旧数据被无限复活）
+  const fallbackCutoff = new Date(Date.now() - 45 * 864e5).toISOString().slice(0, 10);
+  const fetchWithFallback = async (sourceName, fetcher, isMine) => {
+    let raw = [];
+    let failed = false;
+    try {
+      raw = await fetcher();
+    } catch (e) {
+      failed = true;
+      console.error(`[${sourceName}] 抓取失败: ${e.message}`);
     }
-    console.log(`[ttbl] 已并入德乒甲赛程 ${raw.length} 场`);
-  } catch (e) {
-    console.error(`[ttbl] 抓取失败(不影响直播吧数据): ${e.message}`);
+    if (raw.length === 0) {
+      const fb = prevEvents.filter(e => isMine(e) && e.date >= fallbackCutoff);
+      if (fb.length > 0) {
+        console.log(`[${sourceName}] ${failed ? '抓取失败' : '本次结果为0'}，回退复用上次数据 ${fb.length} 场`);
+        return fb;
+      }
+      console.error(`[${sourceName}] 结果为0且无上次数据可回退`);
+    }
+    return raw;
+  };
+
+  // 德乒甲(TTBL)赛程——直播吧没有，从官方站 ttbl.de 补充；失败不影响直播吧数据
+  const ttblRaw = await fetchWithFallback('ttbl', fetchTTBLItems, e => String(e.id || '').startsWith('ttbl-'));
+  for (const it of ttblRaw) {
+    it.category = classify(it);
+    it.sub = subCategory(it);
+    it.teams = teamMatches(it);
+    events.push(it);
   }
+  console.log(`[ttbl] 已并入德乒甲赛程 ${ttblRaw.length} 场`);
 
   // WTT 乒乓球赛事——从 worldtabletennis.com 官方 API 补充（非 Youth/Feeder）
-  try {
-    const wttRaw = await fetchWTTItems(30, 30); // 前后30天
-    for (const it of wttRaw) {
-      it.category = 'pingpong'; // WTT 全部是乒乓球
-      it.sub = ''; // WTT 不细分
-      it.teams = []; // WTT 是个人赛，不涉及关注球队
-      it.important = /决赛|半决赛/.test(it.round || ''); // 决赛/半决赛标为重要
-      events.push(it);
-    }
-    console.log(`[wtt] 已并入 WTT 赛事 ${wttRaw.length} 场`);
-  } catch (e) {
-    console.error(`[wtt] 抓取失败(不影响其他数据): ${e.message}`);
+  const wttRaw = await fetchWithFallback('wtt', () => fetchWTTItems(30, 30), e => e.source === 'wtt'); // 前后30天
+  for (const it of wttRaw) {
+    it.category = 'pingpong'; // WTT 全部是乒乓球
+    it.sub = ''; // WTT 不细分
+    it.teams = []; // WTT 是个人赛，不涉及关注球队
+    it.important = /决赛|半决赛/.test(it.round || ''); // 决赛/半决赛标为重要
+    events.push(it);
   }
+  console.log(`[wtt] 已并入 WTT 赛事 ${wttRaw.length} 场`);
 
   // 历史比分（关注球队的完赛结果）：从比分接口增量保存，合并回 events
   const hist = await collectScoreHistory({ TEAMS, FOLLOW_KEYS: FOLLOW_TEAM_KEYS });
