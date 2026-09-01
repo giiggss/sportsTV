@@ -99,6 +99,12 @@
   }
   .ftags button .num { margin-left: 3px; font-size: 11px; color: #b8bcc2; }
   .ftags button.active .num { color: var(--accent); opacity: .6; }
+  /* 所选日期该分类有比赛：底部小圆点提示（与日期chip一致） */
+  .ftags button.has-match { position: relative; }
+  .ftags button.has-match::after {
+    content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);
+    width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+  }
 
   /* ---------- 日期横向滚动条 ---------- */
   .date-fixed { display: flex; gap: 8px; margin: 22px 0 6px; }
@@ -361,6 +367,7 @@ function renderTabs(counts) {
     for (const key of g.keys) {
       const btn = document.createElement('button');
       if (key === category) btn.classList.add('active');
+      if (counts[key] > 0) btn.classList.add('has-match'); // 所选日期该分类有比赛，显示圆点
       btn.innerHTML = NAME[key] + (counts[key] !== undefined ? ` <span class="num">${counts[key]}</span>` : '');
       btn.onclick = () => {
         category = key;
