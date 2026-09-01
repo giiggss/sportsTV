@@ -548,6 +548,53 @@ async function load() {
   }
 }
 
+// ---------- 实时比分自动刷新 ----------
+// 比分接口 bifen4m.qiumibao.com 允许跨域(*)，本地/线上浏览器都可直连，无需经过服务器
+// 每 60 秒拉一次今天的足篮赛事比分，有变化才重绘列表（页签/日期条不动，数量不受比分影响）
+const SCORE_API = 'https://bifen4m.qiumibao.com/json/list.htm';
+
+// 同队判定：双向包含 + 常见全称/简称别名（比分接口用全称"曼彻斯特联"，赛程页用简称"曼联"）
+function sameCn(a, b) {
+  if (!a || !b) return false;
+  if (a.includes(b) || b.includes(a)) return true;
+  const ALIAS = [['曼联', '曼彻斯特联'], ['曼城', '曼彻斯特城']];
+  return ALIAS.some(([x, y]) => (a.includes(x) || a.includes(y)) && (b.includes(x) || b.includes(y)));
+}
+
+async function refreshLiveScores() {
+  if (!cache || document.hidden) return; // 页面不可见时不请求，省流量
+  const today = localToday();
+  // 只刷今天的足球/篮球赛事（WTT/德乒比分不走这个接口）
+  const todays = cache.events.filter(e =>
+    e.date === today && (e.type === 'football' || e.type === 'basketball') && e.home && e.away);
+  if (todays.length === 0) return;
+  let list;
+  try {
+    const r = await fetch(SCORE_API, { cache: 'no-store' });
+    if (!r.ok) return;
+    list = (await r.json()).list || [];
+  } catch { return; }
+  let changed = false;
+  for (const e of todays) {
+    const hit = list.find(s =>
+      s.sdate === e.date
+      && (s.type === 'football' || s.type === 'basketball')
+      && (s.state === '2' || s.state === '3') // 进行中/完赛才写比分
+      && (sameCn(s.home_team, e.home) || sameCn(s.visit_team, e.away))); // 单边命中即可，防止换边/简称差异
+    if (!hit) continue;
+    const score = `${hit.home_score}-${hit.visit_score}`;
+    const status = hit.state === '2' ? '进行中' : '已结束';
+    if (e.score !== score || e.status !== status) {
+      e.score = score;
+      e.status = status;
+      changed = true;
+    }
+  }
+  if (changed) renderList();
+}
+
+setInterval(refreshLiveScores, 60 * 1000);
+
 // ---------- 深色模式切换 ----------
 const themeBtn = document.getElementById('themeToggle');
 const ICON_MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
@@ -592,6 +639,8 @@ if (IS_STATIC) {
 load();
 // 每 5 分钟自动刷新页面数据
 setInterval(load, 5 * 60 * 1000);
+// 首次加载后 6 秒先刷一次实时比分（之后每 60 秒自动刷，见 refreshLiveScores）
+setTimeout(refreshLiveScores, 6000);
 </script>
 </body>
 </html>
