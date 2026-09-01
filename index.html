@@ -180,17 +180,36 @@
 
   footer { margin-top: 32px; font-size: 12px; color: var(--footer); text-align: center; }
 
-  /* ---------- 移动端 ---------- */
+  /* ---------- 移动端（压缩垂直留白，扩大可视区） ---------- */
   @media (max-width: 640px) {
-    .container { padding: 20px 14px 48px; }
-    .fgroup { flex-direction: column; gap: 8px; }
-    .fgroup-label { width: auto; padding-top: 0; }
+    .container { padding: 12px 14px 20px; }
+    .topbar { margin-bottom: 8px; }
+    .topbar h1 { font-size: 18px; }
+    .topbar .meta { margin-top: 4px; font-size: 12px; }
+    .segmented { margin-bottom: 10px; padding: 2px; }
+    .segmented button { padding: 5px 14px; font-size: 13px; }
+    .segmented button .num { font-size: 11px; }
+    .fgroup { flex-direction: column; gap: 6px; }
+    .fgroup + .fgroup { margin-top: 8px; }
+    .fgroup-label { width: auto; padding-top: 0; font-size: 11px; }
+    .ftags { gap: 6px; }
+    .ftags button { padding: 4px 11px; font-size: 12px; }
+    .ftags button .num { font-size: 10px; }
     .date-arrow { display: none; } /* 触屏直接滑动 */
-    .erow { gap: 10px; padding: 12px 0; }
+    .date-fixed { margin: 10px 0 4px; gap: 6px; }
+    .date-row { margin-bottom: 2px; }
+    .date-chip { min-width: 54px; padding: 4px 8px; }
+    .date-chip .d { font-size: 12px; }
+    .date-chip .w { font-size: 10px; margin-top: 0; }
+    .list { margin-top: 4px; }
+    .list .ghead { margin: 10px 0 0; }
+    .erow { gap: 10px; padding: 8px 0; }
     .erow .t { width: 40px; font-size: 13px; }
+    .erow .league { font-size: 11px; }
     /* B6: 手机端允许队名折行，防止长队名（如巴黎圣日耳曼）被截断 */
-    .erow .teams { font-size: 14px; white-space: normal; line-height: 1.3; }
+    .erow .teams { margin-top: 2px; font-size: 14px; white-space: normal; line-height: 1.3; }
     .erow .channel { max-width: 76px; overflow: hidden; text-overflow: ellipsis; }
+    footer { margin-top: 16px; }
   }
   /* B5: 刷新按钮加载动画 */
   .icon-btn.loading svg { animation: spin 0.8s linear infinite; }
