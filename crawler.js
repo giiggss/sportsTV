@@ -9,6 +9,7 @@ const { collectScoreHistory, applyHistoryToEvents } = require('./history');
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'events.json');
 const SOURCE_URL = 'https://m.zhibo8.com/';
+const FINISHED_URL = 'https://zhibo8.com/schedule/finish_more.htm';
 const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1';
 
 // ---------------- 分类规则 ----------------
@@ -96,6 +97,73 @@ function teamMatches(item) {
     hit.push(key);
   }
   return hit;
+}
+
+// ---------------- 完赛列表页抓取（补抓赛程页已移除的完赛） ----------------
+// 直播吧赛程页只保留未来赛事，已完赛的会被移到 finish_more.htm；
+// 凌晨比赛在早上爬取时可能已从赛程页下架，需从完赛列表补回。
+async function fetchFinishedMatches() {
+  try {
+    const res = await fetch(FINISHED_URL, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return parseFinishedHtml(await res.text());
+  } catch (e) {
+    console.error(`[finished] 完赛列表抓取失败: ${e.message}`);
+    return [];
+  }
+}
+
+function parseFinishedHtml(html) {
+  const events = [];
+  // li 结构: <li ... data-time="YYYY-MM-DD HH:MM"> <time>HH:MM</time> <span class="_league">联赛</span>
+  //          <span class="_teams"> 主队 <img> <span>比分</span> <img> 客队 </span> <a href="url">...</a> </li>
+  const liRe = /<li[^>]*data-time="([^"]*)"[^>]*>([\s\S]*?)<\/li>/g;
+  let m;
+  while ((m = liRe.exec(html)) !== null) {
+    const dateTime = m[1];
+    const body = m[2];
+    const date = dateTime.slice(0, 10);
+    const time = dateTime.slice(11, 16);
+
+    const league = ((/<span class="_league">([\s\S]*?)<\/span>/.exec(body) || [])[1] || '').trim();
+    const teamsHtml = ((/<span class="_teams">([\s\S]*)<\/span>/.exec(body) || [])[1] || '');
+
+    // 从 ._teams 提取: 主队 <img> <span>比分</span> <img> 客队
+    // 去掉所有 img 标签后按 <span>比分</span> 分割
+    const clean = teamsHtml.replace(/<img[^>]*>/gi, '');
+    const scoreMatch = clean.match(/<span>\s*(\d{1,2})\s*-\s*(\d{1,2})\s*<\/span>/);
+    if (!scoreMatch) continue; // 没有比分的不取
+    const parts = clean.split(/<span>[\s\S]*?<\/span>/);
+    const home = (parts[0] || '').replace(/<[^>]+>/g, '').trim();
+    const away = (parts[1] || '').replace(/<[^>]+>/g, '').trim();
+    if (!home || !away) continue;
+
+    // 取第一个 a 标签的 href
+    const hrefMatch = /<a[^>]*href="([^"]*)"/.exec(body);
+    const url = hrefMatch ? (hrefMatch[1].startsWith('http') ? hrefMatch[1] : 'https://www.zhibo8.cc' + hrefMatch[1]) : '';
+
+    const item = {
+      date, time, league, home, away,
+      channel: '',
+      status: '已结束',
+      important: false,
+      type: 'football', // 完赛列表里足球占绝大多数；篮球等若需要再扩展
+      label: `${league},${home},${away}`,
+      url,
+      score: `${scoreMatch[1]}-${scoreMatch[2]}`,
+    };
+    item.category = classify(item);
+    item.sub = subCategory(item);
+    item.teams = teamMatches(item);
+    // 只保留关注球队参与的完赛（避免数据膨胀）
+    if (item.teams.length > 0) events.push(item);
+  }
+  return events;
 }
 
 // ---------------- 爬取与解析 ----------------
@@ -304,6 +372,24 @@ async function crawl() {
   let events = parseSchedule(html);
   if (events.length === 0) throw new Error('解析结果为空，页面结构可能已变化');
 
+  // 完赛列表补充：赛程页会移除已完赛赛事，凌晨比赛早上可能已被下架
+  try {
+    const finished = await fetchFinishedMatches();
+    const existing = new Set(events.map(e => `${e.date}|${e.home}|${e.away}`));
+    let added = 0;
+    for (const f of finished) {
+      const key = `${f.date}|${f.home}|${f.away}`;
+      if (!existing.has(key)) {
+        events.push(f);
+        existing.add(key);
+        added++;
+      }
+    }
+    if (added > 0) console.log(`[finished] 从完赛列表补入 ${added} 场已完赛`);
+  } catch (e) {
+    console.error(`[finished] 完赛列表处理失败(不影响主数据): ${e.message}`);
+  }
+
   // 德乒甲(TTBL)赛程——直播吧没有，从官方站 ttbl.de 补充；失败不影响直播吧数据
   try {
     const raw = await fetchTTBLItems();
@@ -413,7 +499,7 @@ function isStale(data) {
   return !data.events.some(e => e.date === `${y}-${mo}-${d}`);
 }
 
-module.exports = { crawl, loadData, isStale, DATA_FILE, SUB_KEYS, TEAM_KEYS, FOLLOW_TEAM_KEYS, pickFollowedDay, updateReminderCrons, TEAMS };
+module.exports = { crawl, loadData, isStale, DATA_FILE, SUB_KEYS, TEAM_KEYS, FOLLOW_TEAM_KEYS, pickFollowedDay, updateReminderCrons, TEAMS, fetchFinishedMatches };
 
 // 命令行直接运行: node crawler.js
 if (require.main === module) {
