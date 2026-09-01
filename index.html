@@ -238,8 +238,8 @@
 <script>
 // 页签数据：推荐/全部为顶部分段控制器，其余按三组展示
 const SEGMENTED = [
-  { key: 'recommended', name: '推荐' },
-  { key: 'all',         name: '全部' },
+  { key: 'recommended', name: '关注比赛' },
+  { key: 'all',         name: '全部比赛' },
 ];
 const TAB_GROUPS = [
   { label: '足球联赛', keys: ['football', 'yingchao', 'zhongchao', 'xijia', 'ouguan', 'zuxiebei', 'yaguan'] },
@@ -427,7 +427,7 @@ function renderList() {
     // B3: 推荐为空时给出降级提示，告诉用户"全部"里有多少场
     if (category === 'recommended') {
       const allCount = cache ? cache.events.filter(e => !dateFilter || e.date === dateFilter).length : 0;
-      $list.innerHTML = `<div class="empty">今日暂无推荐赛事<br><a href="javascript:void(0)" onclick="document.querySelector('.segmented button:nth-child(2)').click()" style="color:var(--accent);text-decoration:underline;">查看全部 ${allCount} 场</a></div>`;
+      $list.innerHTML = `<div class="empty">今日暂无关注赛事<br><a href="javascript:void(0)" onclick="document.querySelector('.segmented button:nth-child(2)').click()" style="color:var(--accent);text-decoration:underline;">查看全部 ${allCount} 场</a></div>`;
     } else {
       $list.innerHTML = '<div class="empty">暂无赛事</div>';
     }
