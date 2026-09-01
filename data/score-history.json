@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-31T21:07:02.328Z",
+  "updatedAt": "2026-09-01T00:10:20.237Z",
   "entries": [
     {
       "date": "2026-09-01",
@@ -60,6 +60,21 @@
       "source": "zhibo8-score",
       "sport": "football",
       "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2099947v.htm"
+    },
+    {
+      "date": "2026-08-31",
+      "time": "19:35",
+      "league": "",
+      "home": "皇家马德里",
+      "away": "安德莱赫特",
+      "homeScore": "0",
+      "awayScore": "0",
+      "teams": [
+        "realmadrid"
+      ],
+      "source": "zhibo8-score",
+      "sport": "football",
+      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2277731vplayer.htm"
     },
     {
       "date": "2026-08-31",
