@@ -1,6 +1,21 @@
 {
-  "updatedAt": "2026-09-02T07:40:30.689Z",
+  "updatedAt": "2026-09-02T22:53:26.925Z",
   "entries": [
+    {
+      "date": "2026-09-03",
+      "time": "04:00",
+      "league": "",
+      "home": "蒙得维的亚利物浦",
+      "away": "波士顿河竞技",
+      "homeScore": "0",
+      "awayScore": "1",
+      "teams": [
+        "liverpool"
+      ],
+      "source": "zhibo8-score",
+      "sport": "football",
+      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2268639v.htm"
+    },
     {
       "date": "2026-08-31",
       "time": "19:30",
