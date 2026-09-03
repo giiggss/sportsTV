@@ -588,13 +588,13 @@ async function crawl() {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
   console.log(`[crawl] ${new Date().toLocaleString('zh-CN')} 完成，共 ${events.length} 场赛事`);
   generateCard(data);
-  updateReminderCrons(data);
   return data;
 }
 
 // 按关注球队未来的开赛时间，动态生成 match-reminders.yml 的 cron 触发点：
 // 每个不重复的开赛时间生成 3 个 cron（开赛前30分钟 / 前10分钟 / 开赛时，北京时间转UTC），
 // 另加每30分钟一次的兜底。仅云端（CI=true）执行并随数据一起提交，本地不修改工作区。
+// 注意：云端赛前提醒已停用（2026-09-03 起改由本地/Docker 承担），本函数不再被调用，保留仅供手动恢复参考
 function updateReminderCrons(data) {
   if (!process.env.CI) return;
   const wfPath = path.join(__dirname, '.github', 'workflows', 'match-reminders.yml');

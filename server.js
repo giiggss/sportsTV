@@ -6,7 +6,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { crawl, loadData, isStale, SUB_KEYS, TEAM_KEYS } = require('./crawler');
-const { runReminders, runScoreUpdates, runTTUpdates } = require('./notify');
+const { runReminders, runScoreUpdates, runTTUpdates, runCard } = require('./notify');
 
 const PORT = process.env.PORT || 3000;
 
@@ -87,6 +87,19 @@ function scheduleDaily() {
       crawl().catch(e => console.error('[crawl] 失败:', e.message));
     }
   }, 5 * 60 * 1000).unref(); // 每5分钟检查一次是否跨天
+}
+
+// 每日 10:00（北京时，容器已设 TZ=Asia/Shanghai）推送当日赛事卡片
+// 接管原 GitHub Actions daily-push.yml 的职责（云端推送已于 2026-09-03 停用）
+function scheduleDailyCard() {
+  const key = loadConfig().serverchanKey;
+  if (!key) return;
+  setInterval(() => {
+    const now = new Date();
+    if (now.getHours() === 10 && now.getMinutes() < 5) {
+      runCard({ key }).catch(e => console.error('[notify] 每日卡片推送失败:', e.message));
+    }
+  }, 5 * 60 * 1000).unref();
 }
 
 // ---------------- HTTP 服务 ----------------
@@ -177,6 +190,7 @@ const server = http.createServer(async (req, res) => {
     console.log(`[data] 使用本地缓存（爬取于 ${new Date(data.crawledAt).toLocaleString('zh-CN')}）`);
   }
   scheduleDaily();
+  scheduleDailyCard();
   scheduleReminders();
   scheduleScoreUpdates();
   scheduleTTUpdates();
