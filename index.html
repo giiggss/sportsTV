@@ -561,6 +561,11 @@ function sameCn(a, b) {
   return ALIAS.some(([x, y]) => (a.includes(x) || a.includes(y)) && (b.includes(x) || b.includes(y)));
 }
 
+// 青年/预备队不参与匹配：避免"上海海港U17"的青训比分被当成"上海海港"一线队写进未开赛比赛
+function isYouthTeam(name) {
+  return /U(?:1[0-9]|2[0-3])(?![0-9])|青年|预备|青训|B队|二队/i.test(String(name || ''));
+}
+
 async function refreshLiveScores() {
   if (!cache || document.hidden) return; // 页面不可见时不请求，省流量
   const today = localToday();
@@ -580,6 +585,7 @@ async function refreshLiveScores() {
       s.sdate === e.date
       && (s.type === 'football' || s.type === 'basketball')
       && (s.state === '2' || s.state === '3') // 进行中/完赛才写比分
+      && !isYouthTeam(s.home_team) && !isYouthTeam(s.visit_team) // 排除U17/预备队等青训比分
       && (sameCn(s.home_team, e.home) || sameCn(s.visit_team, e.away))); // 单边命中即可，防止换边/简称差异
     if (!hit) continue;
     const score = `${hit.home_score}-${hit.visit_score}`;

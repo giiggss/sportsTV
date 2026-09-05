@@ -24,6 +24,12 @@ async function fetchLiveScores() {
   return j.list || [];
 }
 
+// 青年/预备队判定：比分源出现"上海海港U17"这类青训队时，会被下面的"包含匹配"
+// 误认为一线队(上海海港)，导致未开赛比赛被写错比分、甚至误推进球提醒，必须排除
+function isYouthTeam(name) {
+  return /U(?:1[0-9]|2[0-3])(?![0-9])|青年|预备|青训|B队|二队/i.test(String(name || ''));
+}
+
 // 从 events.json 取关注球队比赛，在比分接口里匹配出"进行中(state=2)"的比赛
 // 匹配规则: 比分条目的 sdate 与赛程日期相同 + football + home/away 队名互相包含
 // 注意: 不过滤赛程"是否今天"——跨午夜仍在进行的比赛(如23:30开赛)日期已不是今天，
@@ -37,6 +43,8 @@ function matchFollowedLive(scoreList, events) {
     const hit = scoreList.find(s => {
       if (s.sdate !== e.date || (s.type !== 'football' && s.type !== 'basketball')) return false; // 足球+篮球都认
       const h = s.home_team || '', v = s.visit_team || '';
+      // 青年/预备队不参与匹配，避免 U17 等青训比分误写一线队
+      if (isYouthTeam(h) || isYouthTeam(v)) return false;
       // 队名互相包含：应对"切尔西"完全一致或细微差异
       const homeMatch = h.includes(e.home) || e.home.includes(h);
       const awayMatch = v.includes(e.away) || e.away.includes(v);

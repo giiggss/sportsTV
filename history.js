@@ -117,11 +117,14 @@ function applyHistoryToEvents(events, hist, { TEAMS, FOLLOW_KEYS }) {
   const list = events.slice();
   const histMatches = new Set(hist.entries.map(keyOf));
 
+  // 青年/预备队不参与匹配：避免"上海海港U17"的历史比分被当成"上海海港"一线队
+  const isYouthTeam = (name) => /U(?:1[0-9]|2[0-3])(?![0-9])|青年|预备|青训|B队|二队/i.test(String(name || ''));
   // 同队判定：双向 includes 能覆盖"维拉/阿斯顿维拉"这类连续简称，
   // 但覆盖不了"曼联/曼彻斯特联"这种非连续简称——后者靠命中同一关注球队 key 判定
   const sameTeam = (a, b) => {
     const na = normalize(a), nb = normalize(b);
     if (!na || !nb) return false;
+    if (isYouthTeam(na) || isYouthTeam(nb)) return false;
     if (na.includes(nb) || nb.includes(na)) return true;
     const ka = matchKeysFromName(a, TEAMS);
     return ka.length > 0 && ka.some(k => matchKeysFromName(b, TEAMS).includes(k));
