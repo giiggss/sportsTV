@@ -1,6 +1,21 @@
 {
-  "updatedAt": "2026-09-05T07:26:45.356Z",
+  "updatedAt": "2026-09-05T08:01:46.956Z",
   "entries": [
+    {
+      "date": "2026-09-05",
+      "time": "13:30",
+      "league": "",
+      "home": "兵库县巴萨拉FC",
+      "away": "和歌山艾特里武",
+      "homeScore": "2",
+      "awayScore": "2",
+      "teams": [
+        "barcelona"
+      ],
+      "source": "zhibo8-score",
+      "sport": "football",
+      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2287165v.htm"
+    },
     {
       "date": "2026-09-03",
       "time": "04:00",
