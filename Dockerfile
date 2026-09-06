@@ -1,5 +1,6 @@
 # 零依赖项目（Node 原生 fetch/http），无需 npm install
-FROM node:20-alpine
+# 用 18-alpine：国内服务器拉不到 node:20-alpine（Docker Hub 被重置），18 兼容原生 fetch
+FROM node:18-alpine
 
 # 时区：容器默认 UTC，每日 0 点爬取/北京时间展示依赖本地时区
 RUN apk add --no-cache tzdata
