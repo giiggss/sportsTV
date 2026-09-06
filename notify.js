@@ -14,7 +14,12 @@ const DATA_DIR = path.join(__dirname, 'data');
 const EVENTS_FILE = path.join(DATA_DIR, 'events.json');
 const STATE_FILE = path.join(DATA_DIR, 'notify-state.json');
 const TT_STATE_FILE = path.join(DATA_DIR, 'ttbl-score-state.json');
-const CARD_URL = 'https://giiggss.github.io/sportsTV/data/card.html';
+// 通知里「打开卡片」的链接：默认指向自建站点（Docker 容器经 NPM 反代的公网地址）；
+// 可用环境变量 CARD_URL 覆盖，让每个 host 发出的通知都指向它自己提供的卡片页面
+const DEFAULT_CARD_URL = 'https://sportstv.techmanclub.com/data/card.html';
+function cardUrl() {
+  return process.env.CARD_URL || DEFAULT_CARD_URL;
+}
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 
 const DRY = process.argv.includes('--dry');
@@ -101,7 +106,7 @@ function buildCardMessage(data) {
   const desp = (dayEvents.length === 0
     ? '今天关注球队没有比赛。'
     : `## ${isToday ? '今日' : '近期'}赛事（我的球队）\n\n${lines.join('\n')}`)
-    + `\n\n[打开完整卡片](${CARD_URL})`;
+    + `\n\n[打开完整卡片](${cardUrl()})`;
 
   return { title: title.slice(0, 32), desp };
 }
@@ -129,7 +134,7 @@ function findDueReminders(data, state) {
       const ch = channelOf(e);
       messages.push({
         title: `⏰约30分钟后开赛：${matchLabel(e)}`.slice(0, 32),
-        desp: `**${e.time}** ${escMd(e.league)}\n\n${escMd(matchLabel(e))}${ch ? `\n\n直播：${escMd(ch)}` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+        desp: `**${e.time}** ${escMd(e.league)}\n\n${escMd(matchLabel(e))}${ch ? `\n\n直播：${escMd(ch)}` : ''}\n\n[打开今日卡片](${cardUrl()})`,
         id,
       });
     }
@@ -138,7 +143,7 @@ function findDueReminders(data, state) {
       const ch = channelOf(e);
       messages.push({
         title: `⏰约10分钟后开赛：${matchLabel(e)}`.slice(0, 32),
-        desp: `**${e.time}** ${escMd(e.league)}\n\n${escMd(matchLabel(e))}${ch ? `\n\n直播：${escMd(ch)}` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+        desp: `**${e.time}** ${escMd(e.league)}\n\n${escMd(matchLabel(e))}${ch ? `\n\n直播：${escMd(ch)}` : ''}\n\n[打开今日卡片](${cardUrl()})`,
         id,
       });
     }
@@ -147,7 +152,7 @@ function findDueReminders(data, state) {
       const ch = channelOf(e);
       messages.push({
         title: `🔴已开赛：${matchLabel(e)}`.slice(0, 32),
-        desp: `比赛已经开始了，去看球吧！\n\n${escMd(matchLabel(e))}${ch ? `\n\n直播：${escMd(ch)}` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+        desp: `比赛已经开始了，去看球吧！\n\n${escMd(matchLabel(e))}${ch ? `\n\n直播：${escMd(ch)}` : ''}\n\n[打开今日卡片](${cardUrl()})`,
         id,
       });
     }
@@ -259,21 +264,21 @@ async function runScoreUpdates(opts = {}) {
     if (prev && !isFT && (prev.home !== m.homeScore || prev.away !== m.awayScore)) {
       messages.push({
         title: `⚽ ${m.home} ${m.homeScore}-${m.awayScore} ${m.away}`.slice(0, 50),
-        desp: `**比分变化**\n\n${m.home} **${m.homeScore}-${m.awayScore}** ${m.away}\n\n${m.period}${m.url ? `\n\n[观看直播](${m.url})` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+        desp: `**比分变化**\n\n${m.home} **${m.homeScore}-${m.awayScore}** ${m.away}\n\n${m.period}${m.url ? `\n\n[观看直播](${m.url})` : ''}\n\n[打开今日卡片](${cardUrl()})`,
       });
     }
     // 半场（中场休息时推送一次）
     if (prev && !prev.ht && isHT) {
       messages.push({
         title: `📋 半场 ${m.home} ${m.homeScore}-${m.awayScore} ${m.away}`.slice(0, 50),
-        desp: `**半场比分**\n\n${m.home} **${m.homeScore}-${m.awayScore}** ${m.away}\n\n中场休息${m.url ? `\n\n[观看直播](${m.url})` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+        desp: `**半场比分**\n\n${m.home} **${m.homeScore}-${m.awayScore}** ${m.away}\n\n中场休息${m.url ? `\n\n[观看直播](${m.url})` : ''}\n\n[打开今日卡片](${cardUrl()})`,
       });
     }
     // 完赛（全场比赛结束时推送最终比分）
     if (prev && !prev.ft && isFT) {
       messages.push({
         title: `🏁 完赛 ${m.home} ${m.homeScore}-${m.awayScore} ${m.away}`.slice(0, 50),
-        desp: `**全场比赛结束**\n\n${m.home} **${m.homeScore}-${m.awayScore}** ${m.away}\n\n最终比分${m.url ? `\n\n[观看直播](${m.url})` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+        desp: `**全场比赛结束**\n\n${m.home} **${m.homeScore}-${m.awayScore}** ${m.away}\n\n最终比分${m.url ? `\n\n[观看直播](${m.url})` : ''}\n\n[打开今日卡片](${cardUrl()})`,
       });
     }
     state[m.id] = {
@@ -363,14 +368,14 @@ async function runTTUpdates(opts = {}) {
     if (prev && !prev.ft && !finished && prev.games !== games) {
       messages.push({
         title: `🏓 ${e.home} ${games} ${e.away}`.slice(0, 50),
-        desp: `**局分变化**\n\n${e.home} **${games}** ${e.away}\n\n${e.league}${e.url ? `\n\n[观看直播](${e.url})` : ''}\n\n[打开今日卡片](${CARD_URL})`,
+        desp: `**局分变化**\n\n${e.home} **${games}** ${e.away}\n\n${e.league}${e.url ? `\n\n[观看直播](${e.url})` : ''}\n\n[打开今日卡片](${cardUrl()})`,
       });
     }
     // 完赛（整场团队赛结束，推送最终局分）
     if (prev && !prev.ft && finished) {
       messages.push({
         title: `🏁 完赛 ${e.home} ${games} ${e.away}`.slice(0, 50),
-        desp: `**比赛结束**\n\n${e.home} **${games}** ${e.away}\n\n${e.league}最终局分\n\n[打开今日卡片](${CARD_URL})`,
+        desp: `**比赛结束**\n\n${e.home} **${games}** ${e.away}\n\n${e.league}最终局分\n\n[打开今日卡片](${cardUrl()})`,
       });
     }
     state[m.id] = { games, ft: Boolean(finished || (prev && prev.ft)) };

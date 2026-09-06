@@ -23,6 +23,8 @@ function loadConfig() {
   // Docker 部署约定用环境变量传配置，没有 config.json 时从 env 兜底
   if (!cfg.serverchanKey && process.env.SERVERCHAN_KEY) cfg.serverchanKey = process.env.SERVERCHAN_KEY;
   if (cfg.localReminders === undefined && process.env.LOCAL_REMINDERS) cfg.localReminders = process.env.LOCAL_REMINDERS === 'true';
+  // 通知卡片链接：config.json 的 cardUrl 可指定；环境变量 CARD_URL 优先级更高（notify.js 在发消息时读取）
+  if (cfg.cardUrl && !process.env.CARD_URL) process.env.CARD_URL = cfg.cardUrl;
   return cfg;
 }
 
