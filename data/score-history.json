@@ -1,6 +1,36 @@
 {
-  "updatedAt": "2026-09-06T11:14:54.761Z",
+  "updatedAt": "2026-09-06T15:03:34.880Z",
   "entries": [
+    {
+      "date": "2026-09-06",
+      "time": "21:00",
+      "league": "",
+      "home": "埃弗顿",
+      "away": "曼联",
+      "homeScore": "2",
+      "awayScore": "2",
+      "teams": [
+        "manutd"
+      ],
+      "source": "zhibo8-score",
+      "sport": "football",
+      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2067669v.htm"
+    },
+    {
+      "date": "2026-09-06",
+      "time": "20:30",
+      "league": "篮球",
+      "home": "中国女篮",
+      "away": "捷克女篮",
+      "homeScore": "74",
+      "awayScore": "70",
+      "teams": [
+        "chinawb"
+      ],
+      "source": "zhibo8-score",
+      "sport": "basketball",
+      "url": "https://www.zhibo8.cc/zhibo/nba/2026/match1971960v.htm"
+    },
     {
       "date": "2026-08-31",
       "time": "19:30",
