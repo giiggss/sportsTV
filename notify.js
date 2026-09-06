@@ -78,7 +78,7 @@ async function sendServerChan(key, title, desp) {
   const res = await fetch(sendUrl(key), {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ title, desp }),
+    body: new URLSearchParams({ title, desp, tags: 'SportsTV' }),
   });
   const j = await res.json();
   if (j.code !== 0) throw new Error(j.message || ('code ' + j.code));
