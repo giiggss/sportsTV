@@ -585,6 +585,7 @@ async function refreshLiveScores() {
       s.sdate === e.date
       && (s.type === 'football' || s.type === 'basketball')
       && (s.state === '2' || s.state === '3') // 进行中/完赛才写比分
+      && s.home_team && s.visit_team // 空队名不参与匹配（活动/草根赛如"怒放竞技场"）
       && !isYouthTeam(s.home_team) && !isYouthTeam(s.visit_team) // 排除U17/预备队等青训比分
       && (sameCn(s.home_team, e.home) || sameCn(s.visit_team, e.away))); // 单边命中即可，防止换边/简称差异
     if (!hit) continue;

@@ -43,6 +43,8 @@ function matchFollowedLive(scoreList, events) {
     const hit = scoreList.find(s => {
       if (s.sdate !== e.date || (s.type !== 'football' && s.type !== 'basketball')) return false; // 足球+篮球都认
       const h = s.home_team || '', v = s.visit_team || '';
+      // 空队名不参与匹配：活动/草根赛(如"怒放竞技场")无队名，'' 会被任何队名的 includes 命中
+      if (!h || !v) return false;
       // 青年/预备队不参与匹配，避免 U17 等青训比分误写一线队
       if (isYouthTeam(h) || isYouthTeam(v)) return false;
       // 队名互相包含：应对"切尔西"完全一致或细微差异
