@@ -25,11 +25,27 @@ function saveHistory(h) {
   fs.writeFileSync(HIST_FILE, JSON.stringify(h, null, 2), 'utf8');
 }
 
+// 青年/预备队判定：避免"上海海港U17"、"皇家马德里C队"等青训比分被当成一线队
+function isYouthTeam(name) {
+  return /U(?:1[0-9]|2[0-3])(?![0-9])|青年|预备|青训|B队|C队|二队/i.test(String(name || ''));
+}
+
 // 队名 -> 关注球队 keys 数组 (重用 TEAMS 关键词规则)
+// 关键词前后紧跟汉字视为误匹配（如"巴萨拉FC"误配"巴萨"、"蒙得维的亚利物浦"误配"利物浦"），继续找下一处
 function matchKeysFromName(name, TEAMS) {
   const list = [];
   for (const [kw, key] of TEAMS) {
-    if ((name || '').includes(kw) && !list.includes(key)) list.push(key);
+    if (list.includes(key)) continue;
+    const s = name || '';
+    let idx = s.indexOf(kw);
+    let ok = false;
+    while (idx !== -1) {
+      const before = idx > 0 ? s[idx - 1] : '';
+      const after = s[idx + kw.length] || '';
+      if (!/[\u4e00-\u9fa5]/.test(before) && !/[\u4e00-\u9fa5]/.test(after)) { ok = true; break; }
+      idx = s.indexOf(kw, idx + kw.length);
+    }
+    if (ok) list.push(key);
   }
   return list;
 }
@@ -60,6 +76,8 @@ async function collectScoreHistory({ TEAMS, FOLLOW_KEYS }) {
     // 注意：接口客队分数字段是 visit_score（不是 away_score），之前一直取错导致收集不到任何完赛
     const aScore = s.visit_score == null ? (s.away_score == null ? null : String(s.away_score)) : String(s.visit_score);
     if (hScore == null || aScore == null) continue;
+    // 青年/预备队不落盘（如"皇家马德里C队"含 C队 会被 matchKeysFromName 命中 realmadrid）
+    if (isYouthTeam(home) || isYouthTeam(away)) continue;
     const teamKeys = [...matchKeysFromName(home, TEAMS), ...matchKeysFromName(away, TEAMS)];
     const followed = followFilter(teamKeys, FOLLOW_KEYS);
     if (followed.length === 0) continue;
@@ -118,9 +136,6 @@ function applyHistoryToEvents(events, hist, { TEAMS, FOLLOW_KEYS }) {
   const histMatches = new Set(hist.entries.map(keyOf));
 
   // 青年/预备队不参与匹配：避免"上海海港U17"的历史比分被当成"上海海港"一线队
-  const isYouthTeam = (name) => /U(?:1[0-9]|2[0-3])(?![0-9])|青年|预备|青训|B队|二队/i.test(String(name || ''));
-  // 同队判定：双向 includes 能覆盖"维拉/阿斯顿维拉"这类连续简称，
-  // 但覆盖不了"曼联/曼彻斯特联"这种非连续简称——后者靠命中同一关注球队 key 判定
   const sameTeam = (a, b) => {
     const na = normalize(a), nb = normalize(b);
     if (!na || !nb) return false;

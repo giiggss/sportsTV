@@ -561,9 +561,9 @@ function sameCn(a, b) {
   return ALIAS.some(([x, y]) => (a.includes(x) || a.includes(y)) && (b.includes(x) || b.includes(y)));
 }
 
-// 青年/预备队不参与匹配：避免"上海海港U17"的青训比分被当成"上海海港"一线队写进未开赛比赛
+// 青年/预备队不参与匹配：避免"上海海港U17"、"皇家马德里C队"等青训比分被当成一线队写进未开赛比赛
 function isYouthTeam(name) {
-  return /U(?:1[0-9]|2[0-3])(?![0-9])|青年|预备|青训|B队|二队/i.test(String(name || ''));
+  return /U(?:1[0-9]|2[0-3])(?![0-9])|青年|预备|青训|B队|C队|二队/i.test(String(name || ''));
 }
 
 async function refreshLiveScores() {

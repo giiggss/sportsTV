@@ -27,7 +27,7 @@ async function fetchLiveScores() {
 // 青年/预备队判定：比分源出现"上海海港U17"这类青训队时，会被下面的"包含匹配"
 // 误认为一线队(上海海港)，导致未开赛比赛被写错比分、甚至误推进球提醒，必须排除
 function isYouthTeam(name) {
-  return /U(?:1[0-9]|2[0-3])(?![0-9])|青年|预备|青训|B队|二队/i.test(String(name || ''));
+  return /U(?:1[0-9]|2[0-3])(?![0-9])|青年|预备|青训|B队|C队|二队/i.test(String(name || ''));
 }
 
 // 从 events.json 取关注球队比赛，在比分接口里匹配出"进行中(state=2)"的比赛

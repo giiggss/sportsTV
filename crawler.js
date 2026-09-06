@@ -91,12 +91,21 @@ function teamMatches(item) {
   const label = item.label || '';
   const hit = [];
   for (const [kw, key] of TEAMS) {
-    const idx = label.indexOf(kw);
-    if (idx === -1 || hit.includes(key)) continue;
-    // 排除青年队：关键词后跟 U+数字（如 U21 / U18）
-    const after = label.slice(idx + kw.length);
-    if (/^U\d+/i.test(after)) continue;
-    hit.push(key);
+    if (hit.includes(key)) continue;
+    // 查找 label 中所有命中位置：关键词前后紧跟汉字视为误匹配
+    // （如"巴萨拉FC"误配"巴萨"、"蒙得维的亚利物浦"误配"利物浦"），继续找下一处
+    let idx = label.indexOf(kw);
+    let ok = false;
+    while (idx !== -1) {
+      const before = idx > 0 ? label[idx - 1] : '';
+      const after = label.slice(idx + kw.length);
+      // 排除青年队：关键词后跟 U+数字（如 U21 / U18）
+      if (/^U\d+/i.test(after)) break;
+      // 前后都不是汉字 → 关键词相对独立，视为有效命中
+      if (!/[\u4e00-\u9fa5]/.test(before) && !/^[\u4e00-\u9fa5]/.test(after)) { ok = true; break; }
+      idx = label.indexOf(kw, idx + kw.length);
+    }
+    if (ok) hit.push(key);
   }
   return hit;
 }
