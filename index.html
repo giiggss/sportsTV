@@ -568,10 +568,19 @@ function isYouthTeam(name) {
 
 async function refreshLiveScores() {
   if (!cache || document.hidden) return; // 页面不可见时不请求，省流量
-  const today = localToday();
-  // 只刷今天的足球/篮球赛事（WTT/德乒比分不走这个接口）
-  const todays = cache.events.filter(e =>
-    e.date === today && (e.type === 'football' || e.type === 'basketball') && e.home && e.away);
+  // 只刷"开赛时间窗口内"的足球/篮球赛事：开赛前5分钟到开赛后240分钟(覆盖加时)。
+  // 不能用 date===today 过滤——跨午夜比赛(如昨晚23:30开赛、凌晨仍在进行)日期是昨天
+  const now = Date.now();
+  const todays = cache.events.filter(e => {
+    if (e.type !== 'football' && e.type !== 'basketball') return false;
+    if (!e.home || !e.away || !e.time) return false;
+    const m = /^(\d{1,2}):(\d{2})/.exec(String(e.time));
+    if (!m) return false;
+    const kickoff = Date.parse(`${e.date}T${m[1]}:${m[2]}:00+08:00`);
+    if (Number.isNaN(kickoff)) return false;
+    const diffMin = (now - kickoff) / 60000;
+    return diffMin >= -5 && diffMin <= 240;
+  });
   if (todays.length === 0) return;
   let list;
   try {
