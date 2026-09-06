@@ -583,10 +583,11 @@ async function refreshLiveScores() {
   for (const e of todays) {
     const hit = list.find(s =>
       s.sdate === e.date
-      && (s.type === 'football' || s.type === 'basketball')
+      && s.type === e.type // 比分类型必须与赛程一致（足球只匹配足球），否则篮球"米兰"会命中足球"国际米兰"
       && (s.state === '2' || s.state === '3') // 进行中/完赛才写比分
       && s.home_team && s.visit_team // 空队名不参与匹配（活动/草根赛如"怒放竞技场"）
       && !isYouthTeam(s.home_team) && !isYouthTeam(s.visit_team) // 排除U17/预备队等青训比分
+      && !(/女足|女篮|女子/.test(s.home_team) !== /女足|女篮|女子/.test(e.home) || /女足|女篮|女子/.test(s.visit_team) !== /女足|女篮|女子/.test(e.away)) // 性别标记一致才匹配
       && (sameCn(s.home_team, e.home) || sameCn(s.visit_team, e.away))); // 单边命中即可，防止换边/简称差异
     if (!hit) continue;
     const score = `${hit.home_score}-${hit.visit_score}`;

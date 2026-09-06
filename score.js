@@ -41,12 +41,17 @@ function matchFollowedLive(scoreList, events) {
   const live = [];
   for (const e of followed) {
     const hit = scoreList.find(s => {
-      if (s.sdate !== e.date || (s.type !== 'football' && s.type !== 'basketball')) return false; // 足球+篮球都认
+      // 比分类型必须与赛程类型一致（足球只匹配足球、篮球只匹配篮球），
+      // 否则足球"国际米兰"会被篮球"米兰"(EA7米兰) 的包含匹配误命中
+      if (s.sdate !== e.date || s.type !== e.type) return false;
       const h = s.home_team || '', v = s.visit_team || '';
       // 空队名不参与匹配：活动/草根赛(如"怒放竞技场")无队名，'' 会被任何队名的 includes 命中
       if (!h || !v) return false;
       // 青年/预备队不参与匹配，避免 U17 等青训比分误写一线队
       if (isYouthTeam(h) || isYouthTeam(v)) return false;
+      // 性别标记不一致不匹配：比分"国际米兰女足"≠赛程"国际米兰"(男足)，"中国女篮"=“中国女篮”
+      const sex = /女足|女篮|女子/;
+      if (sex.test(h) !== sex.test(e.home) || sex.test(v) !== sex.test(e.away)) return false;
       // 队名互相包含：应对"切尔西"完全一致或细微差异
       const homeMatch = h.includes(e.home) || e.home.includes(h);
       const awayMatch = v.includes(e.away) || e.away.includes(v);
