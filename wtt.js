@@ -1,8 +1,16 @@
 // WTT 官方站 (worldtabletennis.com) 数据源
-// 接口无鉴权，但必须带 Origin+Referer 头，否则 422
-// 流程: GetAllLiveOrActiveEvents -> 过滤非Youth/Feeder -> GetOfficialResult 拿比赛
+// 2026-09 起 liveeventsapi 动态接口(GetAllLiveOrActiveEvents/GetOfficialResult/GetBrackets)
+// 对脚本请求返回 400，改用 wtt-web-frontdoor 静态缓存文件（无需鉴权）：
+//   赛事列表   wtt_get_live_event.json
+//   赛事详情   {id}_active_live_event_details.json（日期范围）
+//   全部对阵   {id}/schedule/schedule.json（含时间/轮次/种子/上一轮连接）
+//   进行中     {id}_livematchids.json
+//   已完赛     {id}/officialresult/officialresult_minimal.json
+//   单场比分   matchdata/{id}/{documentCode}.json（competitiors[].scores 每局分）
 
-const WTT_API = 'https://wtt-website-api-vm-frontdoor-hhaec5epbhdyfugz.a01.azurefd.net/liveeventsapi/api/';
+const CDN = 'https://wtt-web-frontdoor-withoutcache-cqakg0andqf5hchn.a01.azurefd.net/';
+const CDN_CACHED = 'https://wtt-web-frontdoor-cthahjeqhbh6aqe3.a01.azurefd.net/';
+const WTT_EVENTS_URL = CDN_CACHED + 'websitestaticapifiles/general/wtt_get_live_event.json';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 const HEADERS = {
   'User-Agent': UA,
@@ -10,6 +18,11 @@ const HEADERS = {
   'Origin': 'https://www.worldtabletennis.com',
   'Referer': 'https://www.worldtabletennis.com/',
 };
+const wttEventDetailUrl = id => `${CDN_CACHED}websitestaticapifiles/${id}/${id}_active_live_event_details.json`;
+const wttScheduleUrl = id => `${CDN}websitecacheddata/${id}/schedule/schedule.json`;
+const wttLiveMatchUrl = id => `${CDN}websitestaticapifiles/running-events/${id}/${id}_livematchids.json`;
+const wttOfficialUrl = id => `${CDN}websitecacheddata/${id}/officialresult/officialresult_minimal.json`;
+const wttMatchDataUrl = (id, code) => `${CDN}matchdata/${id}/${code}.json`;
 
 // 赛事名英->中映射（部分，未匹配的保留英文）
 const EVENT_CN = {
@@ -149,94 +162,119 @@ function calcGameScore(homeScores, awayScores, bestOf = 7) {
   return `${hWin}-${aWin}`;
 }
 
-// 抓单个赛事的某个子项目
-async function fetchEventMatches(eventId, subEventCode, eventName) {
-  const url = `${WTT_API}cms/GetOfficialResult?EventId=${eventId}&DocumentCode=${subEventCode}&include_match_card=true`;
-  const data = await getJson(url);
-  if (!data || !Array.isArray(data)) return [];
+// 抓单个赛事：schedule.json 拿全部对阵，进行中/完赛的比赛再拉 matchdata 补比分
+async function fetchEventMatches(eventId, eventName) {
+  const sched = await getJson(wttScheduleUrl(eventId));
+  if (!sched || !Array.isArray(sched) || sched.length === 0) return [];
+  const units = [];
+  for (const day of sched) {
+    const u = day && day.Competition && day.Competition.Unit;
+    if (Array.isArray(u)) units.push(...u);
+  }
+  // 只保留单打（MS/WS），双打/混双数据量大且关注度低
+  const singles = units.filter(u => /Men's Singles|Women's Singles/i.test(u.SubEvent || ''));
+  if (singles.length === 0) return [];
+  // 需要抓比分的比赛：进行中 + 已完赛
+  // 注意：schedule 的 Code 是截断格式(尾部横杠少)，official/live 的 documentCode 是完整格式，
+  // 用前缀匹配（schedule Code 是完整 documentCode 的前缀）
+  const live = (await getJson(wttLiveMatchUrl(eventId))) || [];
+  const liveCodes = new Set((live.map(x => x && x.d) || []).filter(Boolean));
+  const official = (await getJson(wttOfficialUrl(eventId))) || [];
+  const officialCodes = new Set((official.map(x => x && x.documentCode) || []).filter(Boolean));
+  const findFullCode = code => {
+    for (const c of liveCodes) if (c.startsWith(code)) return c;
+    for (const c of officialCodes) if (c.startsWith(code)) return c;
+    return null;
+  };
   const items = [];
-  for (const m of data) {
-    const mc = m.match_card;
-    if (!mc || !mc.competitiors || mc.competitiors.length < 2) continue;
-    const home = mc.competitiors[0];
-    const away = mc.competitiors[1];
-    if (!m.startDateLocal) continue;
-    // WTT 返回的是赛事当地时间字符串 "2026-08-09T19:15:00"，直接截取日期/时间部分，
+  for (const u of singles) {
+    const code = u.Code || '';
+    const starts = (u.StartList && u.StartList.Start) || [];
+    if (starts.length < 2) continue; // 对阵未定
+    const homeInfo = starts[0].Competitor || {};
+    const awayInfo = starts[1].Competitor || {};
+    const home = (homeInfo.Description && homeInfo.Description.TeamName) || '';
+    const away = (awayInfo.Description && awayInfo.Description.TeamName) || '';
+    if (!home || !away) continue;
+    // WTT 返回的是赛事当地时间字符串 "2026-09-10T11:00:00"，直接截取日期/时间，
     // 不做 Date 转换——否则在 UTC 环境（GitHub Actions）下会偏移8小时
-    const date = m.startDateLocal.slice(0, 10);
-    const time = m.startDateLocal.slice(11, 16);
-    const round = parseRound(m.documentCode);
-    const subEvent = mc.subEventName || m.subEventType || '';
-    const isCompleted = m.fullResults === 'OFFICIAL' && home.scores && away.scores;
-    const score = isCompleted ? calcGameScore(home.scores, away.scores, mc.matchConfig?.bestOfXGames || 7) : null;
+    const date = (u.StartDate || '').slice(0, 10);
+    const time = (u.StartDate || '').slice(11, 16);
+    const round = parseRound(code);
+    const subEvent = u.SubEvent || '';
+    let score = null, status = '未开始';
+    const fullCode = findFullCode(code);
+    if (fullCode) {
+      const md = await getJson(wttMatchDataUrl(eventId, fullCode));
+      if (md && Array.isArray(md.competitiors) && md.competitiors.length >= 2) {
+        const h = md.competitiors[0], a = md.competitiors[1];
+        // 双方分数相同(全0)说明还没开打，不显示比分
+        if (h.scores && a.scores && h.scores !== a.scores) {
+          score = calcGameScore(h.scores, a.scores, (md.matchConfig && md.matchConfig.bestOfXGames) || 7);
+        }
+        status = md.resultStatus === 'OFFICIAL' ? '已结束' : '进行中';
+      }
+      await sleep(120 + Math.random() * 180); // 反爬节流
+    }
     items.push({
       date, time,
       league: eventNameCN(eventName),
-      home: playerNameCN(home.competitiorName),
-      away: playerNameCN(away.competitiorName),
-      homeEn: home.competitiorName,
-      awayEn: away.competitiorName,
+      home: playerNameCN(home),
+      away: playerNameCN(away),
+      homeEn: home,
+      awayEn: away,
       round,
       subEvent,
       score,
-      status: isCompleted ? '已结束' : '未开始',
+      status,
       source: 'wtt',
       wttEventId: eventId,
-      wttMatchId: m.iD || m.id, // API 返回的字段名是 iD（.NET 序列化风格）
-      label: `乒乓球,WTT,${eventName},${subEvent},${home.competitiorName},${away.competitiorName}`,
+      wttMatchId: code, // documentCode 全局唯一，可去重
+      label: `乒乓球,WTT,${eventName},${subEvent},${home},${away}`,
       type: 'pingpong',
-      url: `https://www.worldtabletennis.com/matches?selectedTab=COMPLETED&eventId=${eventId}`,
+      url: `https://www.worldtabletennis.com/matches?selectedTab=DRAWS&eventId=${eventId}`,
     });
   }
   return items;
 }
 
-// 主入口：抓近期非 Youth/Feeder 赛事
+// 主入口：抓近期非 Youth/Feeder/Contender 赛事（澳门大奖赛、大满贯、冠军赛等）
 async function fetchWTTItems(daysBack = 14, daysAhead = 30) {
-  const events = await getJson(WTT_API + 'cms/GetAllLiveOrActiveEvents');
+  const events = await getJson(WTT_EVENTS_URL);
   if (!events || !Array.isArray(events)) {
     console.log('[wtt] 赛事列表获取失败');
     return [];
   }
   const now = new Date();
-  const filtered = events.filter(e => {
-    const name = e.eventName || '';
-    if (/youth|feeder/i.test(name)) return false;
-    // 排除所有挑战赛(Contender 含 Star Contender 球星挑战赛)，只留大满贯/冠军赛/总决赛
-    if (/contender/i.test(name)) return false;
-    const s = new Date(e.startDateTime);
-    const diff = (now - s) / 864e5;
-    return diff >= -daysAhead && diff <= daysBack; // 开始日期在 [now-daysBack, now+daysAhead]
-  }).sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
-
-  console.log(`[wtt] 近期非Youth/Feeder/常规挑战赛赛事 ${filtered.length} 个`);
   const all = [];
-  for (const ev of filtered) {
-    let eventMatchCount = 0;
-    // 只抓单打（MS/WS），双打/混双数据量太大且关注度低
-    for (const sub of ['MS', 'WS']) {
-      await sleep(300 + Math.random() * 400); // 反爬节流
-      const matches = await fetchEventMatches(ev.eventId, sub, ev.eventName);
-      all.push(...matches);
-      eventMatchCount += matches.length;
-      if (matches.length > 0) {
-        console.log(`[wtt] ${ev.eventName} ${sub}: ${matches.length} 场`);
-      }
+  for (const ev of events) {
+    const name = ev.eventName || '';
+    if (/youth|feeder|contender/i.test(name)) continue; // 排除青年/选拔/挑战赛
+    // 详情：日期范围（窗口过滤 + 预告兜底）
+    const detail = await getJson(wttEventDetailUrl(ev.eventId));
+    let dateStr = '', endStr = '', isFuture = true, isRunning = false;
+    if (detail && detail.startDateTime) {
+      dateStr = detail.startDateTime.slice(0, 10);
+      endStr = (detail.endDateTime || '').slice(0, 10);
+      const s = new Date(detail.startDateTime);
+      const e = new Date(detail.endDateTime);
+      isFuture = s > now;
+      isRunning = s <= now && e >= now;
+      const diff = (now - s) / 864e5;
+      if (diff < -daysAhead || diff > daysBack) continue; // 不在抓取窗口
     }
-    // 该赛事还没有任何比赛数据（抽签未出/未开赛）→ 生成赛事预告条目，让用户能看到"哪天有比赛"
-    if (eventMatchCount === 0) {
-      const s = new Date(ev.startDateTime);
-      const e = new Date(ev.endDateTime);
-      // 直接截取原始日期字符串，避免时区转换偏差
-      const dateStr = (ev.startDateTime || '').slice(0, 10);
-      const endStr = (ev.endDateTime || '').slice(0, 10);
-      const isFuture = s > now;
-      const isRunning = s <= now && e >= now;
+    await sleep(200 + Math.random() * 300); // 反爬节流
+    const matches = await fetchEventMatches(ev.eventId, name);
+    all.push(...matches);
+    if (matches.length > 0) {
+      console.log(`[wtt] ${name}: ${matches.length} 场`);
+    } else {
+      // 该赛事还没有任何对阵（抽签未出/未开赛）→ 生成赛事预告条目，让用户能看到"哪天有比赛"
       all.push({
-        date: dateStr,
+        date: dateStr || now.toISOString().slice(0, 10),
         time: '',
-        league: eventNameCN(ev.eventName),
-        home: eventNameCN(ev.eventName),
+        league: eventNameCN(name),
+        home: eventNameCN(name),
         away: dateStr === endStr ? '单日' : `至 ${endStr.slice(5)}`,
         round: isRunning ? '进行中' : (isFuture ? '预告' : ''),
         subEvent: '',
@@ -245,12 +283,12 @@ async function fetchWTTItems(daysBack = 14, daysAhead = 30) {
         source: 'wtt',
         wttEventId: ev.eventId,
         wttMatchId: 'event-' + ev.eventId, // 赛事级条目
-        label: `乒乓球,WTT,${ev.eventName}`,
+        label: `乒乓球,WTT,${name}`,
         type: 'pingpong',
         url: `https://www.worldtabletennis.com/matches?eventId=${ev.eventId}`,
         isEventCard: true, // 标记：这是赛事预告，不是具体比赛
       });
-      console.log(`[wtt] ${ev.eventName}: 暂无比赛数据，生成赛事预告 (${dateStr}~${endStr})`);
+      console.log(`[wtt] ${name}: 暂无比赛数据，生成赛事预告 (${dateStr}~${endStr})`);
     }
   }
   // 去重（按 wttMatchId）
