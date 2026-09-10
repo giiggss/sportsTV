@@ -610,7 +610,84 @@ async function refreshLiveScores() {
   if (changed) renderList();
 }
 
+// ---------- WTT 乒乓球实时比分自动刷新 ----------
+// WTT matchdata 静态文件允许跨域(*)，浏览器可直连；每60秒刷开赛时间窗口内的乒乓球比赛
+const WTT_CDN = 'https://wtt-web-frontdoor-withoutcache-cqakg0andqf5hchn.a01.azurefd.net/';
+const wttLiveMatchUrl = id => `${WTT_CDN}websitestaticapifiles/running-events/${id}/${id}_livematchids.json`;
+const wttMatchDataUrl = (id, code) => `${WTT_CDN}matchdata/${id}/${code}.json`;
+
+// 从每局比分算局分："11,5,11,0,0" vs "9,11,9,0,0" -> 3-1
+function calcGameScore(homeScores, awayScores, bestOf) {
+  const h = String(homeScores).split(',').map(Number);
+  const a = String(awayScores).split(',').map(Number);
+  let hWin = 0, aWin = 0;
+  const need = Math.ceil((bestOf || 7) / 2);
+  for (let i = 0; i < (bestOf || 7); i++) {
+    if (hWin >= need || aWin >= need) break;
+    if (h[i] === 0 && a[i] === 0) break;
+    if (h[i] > a[i]) hWin++; else if (a[i] > h[i]) aWin++;
+  }
+  return `${hWin}-${aWin}`;
+}
+
+async function refreshWTTLive() {
+  if (!cache || document.hidden) return;
+  // 只刷开赛时间窗口内(前5分~后240分)的 WTT 单场（排除赛事预告和已结束）
+  const now = Date.now();
+  const wtts = cache.events.filter(e => {
+    if (e.source !== 'wtt' || e.isEventCard || !e.wttMatchId || !e.time) return false;
+    if (e.status === '已结束') return false;
+    const m = /^(\d{1,2}):(\d{2})/.exec(String(e.time));
+    if (!m) return false;
+    const start = Date.parse(`${e.date}T${m[1]}:${m[2]}:00+08:00`);
+    if (Number.isNaN(start)) return false;
+    const diffMin = (now - start) / 60000;
+    return diffMin >= -5 && diffMin <= 240;
+  });
+  if (wtts.length === 0) return;
+  const byEvent = new Map();
+  for (const e of wtts) {
+    if (!byEvent.has(e.wttEventId)) byEvent.set(e.wttEventId, []);
+    byEvent.get(e.wttEventId).push(e);
+  }
+  let changed = false;
+  for (const [eid, list] of byEvent) {
+    let live;
+    try {
+      const r = await fetch(wttLiveMatchUrl(eid), { cache: 'no-store' });
+      if (!r.ok) continue;
+      live = await r.json();
+    } catch { continue; }
+    if (!Array.isArray(live)) continue;
+    for (const e of list) {
+      // livematchids 返回完整 documentCode，赛程里是截断格式，用前缀匹配
+      const item = live.find(x => x && x.d && x.d.startsWith(e.wttMatchId));
+      if (!item) continue;
+      let md;
+      try {
+        const r = await fetch(wttMatchDataUrl(eid, item.d), { cache: 'no-store' });
+        if (!r.ok) continue;
+        md = await r.json();
+      } catch { continue; }
+      if (!md || !md.competitiors || md.competitiors.length < 2) continue;
+      const h = md.competitiors[0], a = md.competitiors[1];
+      const status = md.resultStatus === 'OFFICIAL' ? '已结束' : '进行中';
+      let score = e.score;
+      if (h.scores && a.scores && h.scores !== a.scores) {
+        score = calcGameScore(h.scores, a.scores, md.matchConfig && md.matchConfig.bestOfXGames);
+      }
+      if (e.score !== score || e.status !== status) {
+        e.score = score;
+        e.status = status;
+        changed = true;
+      }
+    }
+  }
+  if (changed) renderList();
+}
+
 setInterval(refreshLiveScores, 60 * 1000);
+setInterval(refreshWTTLive, 60 * 1000);
 
 // ---------- 深色模式切换 ----------
 const themeBtn = document.getElementById('themeToggle');
@@ -658,6 +735,7 @@ load();
 setInterval(load, 5 * 60 * 1000);
 // 首次加载后 6 秒先刷一次实时比分（之后每 60 秒自动刷，见 refreshLiveScores）
 setTimeout(refreshLiveScores, 6000);
+setTimeout(refreshWTTLive, 6000);
 </script>
 </body>
 </html>
