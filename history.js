@@ -27,6 +27,8 @@ function saveHistory(h) {
 
 // 青年/预备队判定：避免"上海海港U17"、"皇家马德里C队"等青训比分被当成一线队
 function isYouthTeam(name) {
+  // 国家队U字号(如"中国U23"亚运男足)是关注对象本身，不是俱乐部青年梯队，不视为青训
+  if (/^中国(?=U\d)/.test(String(name || ''))) return false;
   return /U(?:1[0-9]|2[0-3])(?![0-9])|青年|预备|青训|B队|C队|二队/i.test(String(name || ''));
 }
 
@@ -76,8 +78,10 @@ async function collectScoreHistory({ TEAMS, FOLLOW_KEYS }) {
     // 注意：接口客队分数字段是 visit_score（不是 away_score），之前一直取错导致收集不到任何完赛
     const aScore = s.visit_score == null ? (s.away_score == null ? null : String(s.away_score)) : String(s.visit_score);
     if (hScore == null || aScore == null) continue;
-    // 青年/预备队不落盘（如"皇家马德里C队"含 C队 会被 matchKeysFromName 命中 realmadrid）
-    if (isYouthTeam(home) || isYouthTeam(away)) continue;
+    // 青年/预备队不落盘（如"皇家马德里C队"含 C队 会被 matchKeysFromName 命中 realmadrid）；
+    // 比分含国家队U字号(中国U23=亚运男足)时整场放行，否则对手"朝鲜U23"会被误过滤
+    const nationalU23 = /^中国(?=U\d)/.test(home) || /^中国(?=U\d)/.test(away);
+    if (!nationalU23 && (isYouthTeam(home) || isYouthTeam(away))) continue;
     const teamKeys = [...matchKeysFromName(home, TEAMS), ...matchKeysFromName(away, TEAMS)];
     const followed = followFilter(teamKeys, FOLLOW_KEYS);
     if (followed.length === 0) continue;
@@ -135,11 +139,13 @@ function applyHistoryToEvents(events, hist, { TEAMS, FOLLOW_KEYS }) {
   const list = events.slice();
   const histMatches = new Set(hist.entries.map(keyOf));
 
-  // 青年/预备队不参与匹配：避免"上海海港U17"的历史比分被当成"上海海港"一线队
+  // 青年/预备队不参与匹配：避免"上海海港U17"的历史比分被当成"上海海港"一线队；
+  // 但比分含国家队U字号(中国U23=亚运男足)时放行，否则"朝鲜U23"历史比分匹配不上
   const sameTeam = (a, b) => {
     const na = normalize(a), nb = normalize(b);
     if (!na || !nb) return false;
-    if (isYouthTeam(na) || isYouthTeam(nb)) return false;
+    const nationalU23 = /^中国(?=U\d)/.test(na) || /^中国(?=U\d)/.test(nb);
+    if (!nationalU23 && (isYouthTeam(na) || isYouthTeam(nb))) return false;
     if (na.includes(nb) || nb.includes(na)) return true;
     const ka = matchKeysFromName(a, TEAMS);
     return ka.length > 0 && ka.some(k => matchKeysFromName(b, TEAMS).includes(k));

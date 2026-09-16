@@ -27,6 +27,8 @@ async function fetchLiveScores() {
 // 青年/预备队判定：比分源出现"上海海港U17"这类青训队时，会被下面的"包含匹配"
 // 误认为一线队(上海海港)，导致未开赛比赛被写错比分、甚至误推进球提醒，必须排除
 function isYouthTeam(name) {
+  // 国家队U字号(如"中国U23"亚运男足)是关注对象本身，不是俱乐部青年梯队，不视为青训
+  if (/^中国(?=U\d)/.test(String(name || ''))) return false;
   return /U(?:1[0-9]|2[0-3])(?![0-9])|青年|预备|青训|B队|C队|二队/i.test(String(name || ''));
 }
 
@@ -47,8 +49,10 @@ function matchFollowedLive(scoreList, events) {
       const h = s.home_team || '', v = s.visit_team || '';
       // 空队名不参与匹配：活动/草根赛(如"怒放竞技场")无队名，'' 会被任何队名的 includes 命中
       if (!h || !v) return false;
-      // 青年/预备队不参与匹配，避免 U17 等青训比分误写一线队
-      if (isYouthTeam(h) || isYouthTeam(v)) return false;
+      // 青年/预备队不参与匹配，避免 U17 等青训比分误写一线队；
+      // 但比分含国家队U字号(中国U23=亚运男足)时整场放行——否则对手"朝鲜U23"也会被误过滤
+      const nationalU23 = /^中国(?=U\d)/.test(h) || /^中国(?=U\d)/.test(v);
+      if (!nationalU23 && (isYouthTeam(h) || isYouthTeam(v))) return false;
       // 性别标记不一致不匹配：比分"国际米兰女足"≠赛程"国际米兰"(男足)，"中国女篮"=“中国女篮”
       const sex = /女足|女篮|女子/;
       if (sex.test(h) !== sex.test(e.home) || sex.test(v) !== sex.test(e.away)) return false;

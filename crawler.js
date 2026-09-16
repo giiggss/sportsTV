@@ -60,6 +60,9 @@ const TEAMS = [
   ['那不勒斯', 'napoli'],
   ['中国男篮', 'chinamb'], // 中国男篮（世亚预/亚运会等）
   ['中国女篮', 'chinawb'], // 中国女篮（女篮世界杯/亚运会等）
+  ['中国U23男足', 'chinau23'], // 亚运会男足（直播吧赛程用"中国U23男足"，比"中国U23"多"男足"两字）
+  ['中国U23', 'chinau23'], // 比分接口可能用简称
+  ['中国国奥', 'chinau23'],
   ['杜塞尔多夫', 'duesseldorf'], // 德乒甲，樊振东所在队
 ];
 const TEAM_KEYS = [...new Set(TEAMS.map(([, k]) => k))];
@@ -368,7 +371,7 @@ function esc(s) {
 }
 
 // 关注的球队（与页签"我的球队"一致），卡片只展示这些队伍的比赛
-const FOLLOW_TEAM_KEYS = ['mancity', 'arsenal', 'manutd', 'chelsea', 'liverpool', 'barcelona', 'realmadrid', 'atletico', 'psg', 'bayern', 'inter', 'napoli', 'shenhua', 'shanggang', 'chinamb', 'chinawb', 'duesseldorf'];
+const FOLLOW_TEAM_KEYS = ['mancity', 'arsenal', 'manutd', 'chelsea', 'liverpool', 'barcelona', 'realmadrid', 'atletico', 'psg', 'bayern', 'inter', 'napoli', 'shenhua', 'shanggang', 'chinamb', 'chinawb', 'chinau23', 'duesseldorf'];
 
 // 从全部赛事中选出"关注球队"的赛事，并确定卡片展示的日期（优先今天，否则最近一个有比赛的日期）
 function pickFollowedDay(events) {
