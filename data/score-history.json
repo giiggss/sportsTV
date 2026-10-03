@@ -1,6 +1,21 @@
 {
-  "updatedAt": "2026-10-03T00:04:34.487Z",
+  "updatedAt": "2026-10-03T08:56:21.584Z",
   "entries": [
+    {
+      "date": "2026-10-03",
+      "time": "14:00",
+      "league": "",
+      "home": "中国U23男足",
+      "away": "乌兹别克斯坦U23男足",
+      "homeScore": "2",
+      "awayScore": "2",
+      "teams": [
+        "chinau23"
+      ],
+      "source": "zhibo8-score",
+      "sport": "football",
+      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2298095v.htm"
+    },
     {
       "date": "2026-09-06",
       "time": "21:00",
