@@ -1,37 +1,6 @@
 {
-  "updatedAt": "2026-10-25T22:52:56.112Z",
+  "updatedAt": "2026-10-26T05:54:49.127Z",
   "entries": [
-    {
-      "date": "2026-10-26",
-      "time": "04:00",
-      "league": "",
-      "home": "巴塞罗那",
-      "away": "皇家马德里",
-      "homeScore": "1",
-      "awayScore": "2",
-      "teams": [
-        "barcelona",
-        "realmadrid"
-      ],
-      "source": "zhibo8-score",
-      "sport": "football",
-      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2075497v.htm"
-    },
-    {
-      "date": "2026-10-03",
-      "time": "14:00",
-      "league": "",
-      "home": "中国U23男足",
-      "away": "乌兹别克斯坦U23男足",
-      "homeScore": "2",
-      "awayScore": "2",
-      "teams": [
-        "chinau23"
-      ],
-      "source": "zhibo8-score",
-      "sport": "football",
-      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2298095v.htm"
-    },
     {
       "date": "2026-09-06",
       "time": "21:00",
