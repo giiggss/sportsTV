@@ -1,6 +1,21 @@
 {
-  "updatedAt": "2026-11-03T07:48:26.841Z",
+  "updatedAt": "2026-11-03T10:29:16.800Z",
   "entries": [
+    {
+      "date": "2026-11-03",
+      "time": "15:45",
+      "league": "",
+      "home": "纽卡斯尔喷气机",
+      "away": "上海海港",
+      "homeScore": "2",
+      "awayScore": "4",
+      "teams": [
+        "shanggang"
+      ],
+      "source": "zhibo8-score",
+      "sport": "football",
+      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2172336v.htm"
+    },
     {
       "date": "2026-09-06",
       "time": "21:00",
