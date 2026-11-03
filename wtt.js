@@ -80,6 +80,44 @@ const PLAYER_CN = {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+// countryCode -> IANA timezone 映射（WTT 主要赛事国）
+const COUNTRY_TZ = {
+  CHN: 'Asia/Shanghai', MAC: 'Asia/Macau', HKG: 'Asia/Hong_Kong',
+  JPN: 'Asia/Tokyo', KOR: 'Asia/Seoul', SGP: 'Asia/Singapore',
+  QAT: 'Asia/Qatar', IND: 'Asia/Kolkata', THA: 'Asia/Bangkok',
+  GER: 'Europe/Berlin', FRA: 'Europe/Paris', GBR: 'Europe/London',
+  SWE: 'Europe/Stockholm', RUS: 'Europe/Moscow', SUI: 'Europe/Zurich',
+  USA: 'America/New_York', AUS: 'Australia/Sydney', CAN: 'America/Toronto',
+  AUT: 'Europe/Vienna', CZE: 'Europe/Prague', POL: 'Europe/Warsaw',
+  NOR: 'Europe/Oslo', DEN: 'Europe/Copenhagen', FIN: 'Europe/Helsinki',
+  BEL: 'Europe/Brussels', NED: 'Europe/Amsterdam', ITA: 'Europe/Rome',
+  ESP: 'Europe/Madrid', POR: 'Europe/Lisbon', GRE: 'Europe/Athens',
+  TUR: 'Europe/Istanbul', UKR: 'Europe/Kyiv',
+};
+
+// 把 WTT 当地时间字符串（无时区后缀）转成北京时间
+// 用 Intl.DateTimeFormat 的 longOffset 自动处理夏令时
+function localToBeijing(str, countryCode) {
+  if (!str) return { date: '', time: '' };
+  const tz = countryCode && COUNTRY_TZ[countryCode.toUpperCase()];
+  if (!tz) return { date: str.slice(0, 10), time: str.slice(11, 16) }; // 兜底：未知时区原样返回
+  const [dp, tp] = str.split('T');
+  const [y, mo, d] = dp.split('-').map(Number);
+  const [h, mi] = (tp || '00:00').split(':').map(Number);
+  const fake = new Date(Date.UTC(y, mo - 1, d, h, mi));
+  let offMin = 0;
+  try {
+    const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'longOffset' });
+    const m = fmt.formatToParts(fake).find(p => p.type === 'timeZoneName').value.match(/GMT([+-])(\d+):(\d+)/);
+    if (m) offMin = (m[1] === '+' ? 1 : -1) * (parseInt(m[2]) * 60 + parseInt(m[3]));
+  } catch {}
+  const bj = new Date(fake.getTime() - offMin * 60000 + 8 * 3600000);
+  return {
+    date: `${bj.getUTCFullYear()}-${String(bj.getUTCMonth() + 1).padStart(2, '0')}-${String(bj.getUTCDate()).padStart(2, '0')}`,
+    time: `${String(bj.getUTCHours()).padStart(2, '0')}:${String(bj.getUTCMinutes()).padStart(2, '0')}`,
+  };
+}
+
 async function getJson(url, retries = 2) {
   for (let i = 0; i <= retries; i++) {
     try {
@@ -163,7 +201,7 @@ function calcGameScore(homeScores, awayScores, bestOf = 7) {
 }
 
 // 抓单个赛事：schedule.json 拿全部对阵，进行中/完赛的比赛再拉 matchdata 补比分
-async function fetchEventMatches(eventId, eventName) {
+async function fetchEventMatches(eventId, eventName, countryCode) {
   const sched = await getJson(wttScheduleUrl(eventId));
   if (!sched || !Array.isArray(sched) || sched.length === 0) return [];
   const units = [];
@@ -196,10 +234,11 @@ async function fetchEventMatches(eventId, eventName) {
     const home = (homeInfo.Description && homeInfo.Description.TeamName) || '';
     const away = (awayInfo.Description && awayInfo.Description.TeamName) || '';
     if (!home || !away) continue;
-    // WTT 返回的是赛事当地时间字符串 "2026-09-10T11:00:00"，直接截取日期/时间，
-    // 不做 Date 转换——否则在 UTC 环境（GitHub Actions）下会偏移8小时
-    const date = (u.StartDate || '').slice(0, 10);
-    const time = (u.StartDate || '').slice(11, 16);
+    // WTT 返回赛事当地时间字符串 "2026-11-03T12:00:00"（无时区后缀），
+    // 根据赛事国家(countryCode)映射 IANA 时区后转北京时间，自动处理夏令时
+    const t = localToBeijing(u.StartDate || '', countryCode);
+    const date = t.date;
+    const time = t.time;
     const round = parseRound(code);
     const subEvent = u.SubEvent || '';
     let score = null, status = '未开始';
@@ -264,7 +303,8 @@ async function fetchWTTItems(daysBack = 14, daysAhead = 30) {
       if (diff < -daysAhead || diff > daysBack) continue; // 不在抓取窗口
     }
     await sleep(200 + Math.random() * 300); // 反爬节流
-    const matches = await fetchEventMatches(ev.eventId, name);
+    const countryCode = (detail && detail.countryCode) || '';
+    const matches = await fetchEventMatches(ev.eventId, name, countryCode);
     all.push(...matches);
     if (matches.length > 0) {
       console.log(`[wtt] ${name}: ${matches.length} 场`);
