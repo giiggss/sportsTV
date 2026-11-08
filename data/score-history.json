@@ -1,6 +1,36 @@
 {
-  "updatedAt": "2026-11-08T00:03:12.778Z",
+  "updatedAt": "2026-11-08T09:55:40.434Z",
   "entries": [
+    {
+      "date": "2026-11-08",
+      "time": "15:30",
+      "league": "",
+      "home": "上海申花",
+      "away": "青岛西海岸",
+      "homeScore": "4",
+      "awayScore": "0",
+      "teams": [
+        "shenhua"
+      ],
+      "source": "zhibo8-score",
+      "sport": "football",
+      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match1923663v.htm"
+    },
+    {
+      "date": "2026-11-08",
+      "time": "15:30",
+      "league": "",
+      "home": "上海海港",
+      "away": "辽宁铁人",
+      "homeScore": "6",
+      "awayScore": "1",
+      "teams": [
+        "shanggang"
+      ],
+      "source": "zhibo8-score",
+      "sport": "football",
+      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match1923662v.htm"
+    },
     {
       "date": "2026-11-03",
       "time": "15:45",
