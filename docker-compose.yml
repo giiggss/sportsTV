@@ -7,8 +7,11 @@ services:
     environment:
       # Server酱 key（sctp 开头的付费版 key），比分变化/德乒局分提醒用
       - SERVERCHAN_KEY=${SERVERCHAN_KEY}
-      # 赛前提醒默认交云端 GitHub Actions；容器常开想接管赛前提醒就设 true（注意会重复云端推送，二选一）
-      - LOCAL_REMINDERS=false
+      # 赛前提醒：容器常开并接管提醒时在 .env 里设 LOCAL_REMINDERS=true（云端 workflow 已停用，不会重复）
+      - LOCAL_REMINDERS=${LOCAL_REMINDERS:-false}
+      # 免费版 Server酱 每天仅 5 条，比分/局分推送默认关闭，避免挤掉赛前提醒
+      - SCORE_UPDATES=${SCORE_UPDATES:-false}
+      - TT_UPDATES=${TT_UPDATES:-false}
       # 推送通知里「打开卡片」的链接，指向本容器经 NPM 反代的公网地址（不设则代码默认同值）
       - CARD_URL=https://sportstv.techmanclub.com/data/card.html
     volumes:

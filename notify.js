@@ -216,12 +216,20 @@ async function runReminders(opts = {}) {
     return { sent: 0 };
   }
   if (!key) throw new Error('未配置 SERVERCHAN_KEY');
+  let sent = 0;
   for (const m of messages) {
-    await sendServerChan(key, m.title, m.desp);
-    console.log(`[notify] 已发送: ${m.title}`);
+    try {
+      await sendServerChan(key, m.title, m.desp);
+      sent++;
+      console.log(`[notify] 已发送: ${m.title}`);
+    } catch (e) {
+      // 免费版每天仅 5 条，超限后继续抛错会导致状态不落盘、每分钟重复重试；
+      // 这里单条失败只记录，仍保存已标记的状态，避免重复轰炸
+      console.error(`[notify] 发送失败（跳过）: ${m.title} -> ${e.message}`);
+    }
   }
   saveState(state);
-  return { sent: messages.length };
+  return { sent };
 }
 
 // 关注球队是否有比赛可能正在进行中（开赛前后共240分钟窗口，覆盖加时赛），用于预判是否需要拉取比分接口

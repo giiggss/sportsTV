@@ -23,6 +23,9 @@ function loadConfig() {
   // Docker 部署约定用环境变量传配置，没有 config.json 时从 env 兜底
   if (!cfg.serverchanKey && process.env.SERVERCHAN_KEY) cfg.serverchanKey = process.env.SERVERCHAN_KEY;
   if (cfg.localReminders === undefined && process.env.LOCAL_REMINDERS) cfg.localReminders = process.env.LOCAL_REMINDERS === 'true';
+  // 比分/德乒局分推送条数不可控，Server酱免费版每天只有 5 条，默认在容器里关掉，把额度留给赛前提醒
+  if (cfg.scoreUpdates === undefined && process.env.SCORE_UPDATES) cfg.scoreUpdates = process.env.SCORE_UPDATES === 'true';
+  if (cfg.ttUpdates === undefined && process.env.TT_UPDATES) cfg.ttUpdates = process.env.TT_UPDATES === 'true';
   // 通知卡片链接：config.json 的 cardUrl 可指定；环境变量 CARD_URL 优先级更高（notify.js 在发消息时读取）
   if (cfg.cardUrl && !process.env.CARD_URL) process.env.CARD_URL = cfg.cardUrl;
   return cfg;
@@ -48,9 +51,16 @@ function scheduleReminders() {
 }
 
 function scheduleScoreUpdates() {
-  const key = loadConfig().serverchanKey;
+  const cfg = loadConfig();
+  const key = cfg.serverchanKey;
   if (!key) {
     console.log('[notify] config.json 未配置 serverchanKey，比分变化提醒未启用');
+    return;
+  }
+  // Server酱 免费版每天仅 5 条，比分变化条数不可控，建议用 config.json 的 scoreUpdates=false 关掉，
+  // 把额度留给赛前提醒
+  if (cfg.scoreUpdates === false) {
+    console.log('[notify] 比分变化提醒已关闭（config.json scoreUpdates=false）');
     return;
   }
   console.log('[notify] 本地比分变化提醒已启用（45~75秒随机间隔）');
@@ -67,8 +77,13 @@ function scheduleScoreUpdates() {
 
 // 德乒甲局分提醒：官方页面较重(约250KB)，仅在关注比赛时段轮询，100~140秒随机间隔
 function scheduleTTUpdates() {
-  const key = loadConfig().serverchanKey;
+  const cfg = loadConfig();
+  const key = cfg.serverchanKey;
   if (!key) return;
+  if (cfg.ttUpdates === false) {
+    console.log('[notify] 德乒甲局分提醒已关闭（config.json ttUpdates=false）');
+    return;
+  }
   console.log('[notify] 德乒甲局分提醒已启用（100~140秒随机间隔，仅比赛时段轮询）');
   const tick = () => {
     runTTUpdates({ key })
