@@ -9,9 +9,9 @@ services:
       - SERVERCHAN_KEY=${SERVERCHAN_KEY}
       # 赛前提醒：容器常开并接管提醒时在 .env 里设 LOCAL_REMINDERS=true（云端 workflow 已停用，不会重复）
       - LOCAL_REMINDERS=${LOCAL_REMINDERS:-false}
-      # 免费版 Server酱 每天仅 5 条，比分/局分推送默认关闭，避免挤掉赛前提醒
-      - SCORE_UPDATES=${SCORE_UPDATES:-false}
-      - TT_UPDATES=${TT_UPDATES:-false}
+      # 付费版额度充足，比分/局分推送默认开启；如需省额度可在 .env 设 false
+      - SCORE_UPDATES=${SCORE_UPDATES:-true}
+      - TT_UPDATES=${TT_UPDATES:-true}
       # 推送通知里「打开卡片」的链接，指向本容器经 NPM 反代的公网地址（不设则代码默认同值）
       - CARD_URL=https://sportstv.techmanclub.com/data/card.html
     volumes:
