@@ -1,6 +1,21 @@
 {
-  "updatedAt": "2026-11-26T03:16:15.096Z",
+  "updatedAt": "2026-11-26T11:56:10.266Z",
   "entries": [
+    {
+      "date": "2026-11-26",
+      "time": "18:00",
+      "league": "",
+      "home": "淡滨尼流浪",
+      "away": "上海申花",
+      "homeScore": "1",
+      "awayScore": "7",
+      "teams": [
+        "shenhua"
+      ],
+      "source": "zhibo8-score",
+      "sport": "football",
+      "url": "https://www.zhibo8.cc/zhibo/zuqiu/2026/match2172266v.htm"
+    },
     {
       "date": "2026-09-06",
       "time": "21:00",
